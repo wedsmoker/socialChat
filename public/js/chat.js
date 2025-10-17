@@ -57,6 +57,7 @@ function setupChatUI() {
     const chatroomSelect = document.getElementById('chatroomSelect');
     const createChatroomBtn = document.getElementById('createChatroomBtn');
     const expandChatBtn = document.getElementById('expandChatBtn');
+    const minimizeChatBtn = document.getElementById('minimizeChatBtn');
 
     sendMessageBtn.addEventListener('click', sendMessage);
 
@@ -78,6 +79,7 @@ function setupChatUI() {
     createChatroomBtn.addEventListener('click', createChatroom);
 
     expandChatBtn.addEventListener('click', toggleChatExpansion);
+    minimizeChatBtn.addEventListener('click', toggleChatMinimize);
 }
 
 async function loadChatrooms() {
@@ -253,10 +255,31 @@ async function createChatroom() {
 
 function toggleChatExpansion() {
     const chatSection = document.getElementById('chatSection');
+
+    // Remove minimized if it's minimized
+    if (chatSection.classList.contains('minimized')) {
+        chatSection.classList.remove('minimized');
+    }
+
     chatSection.classList.toggle('expanded');
 
     const expandBtn = document.getElementById('expandChatBtn');
     expandBtn.textContent = chatSection.classList.contains('expanded') ? '⬇️' : '⬆️';
+}
+
+function toggleChatMinimize() {
+    const chatSection = document.getElementById('chatSection');
+    const minimizeBtn = document.getElementById('minimizeChatBtn');
+
+    chatSection.classList.toggle('minimized');
+
+    // Remove expanded class if minimizing
+    if (chatSection.classList.contains('minimized')) {
+        chatSection.classList.remove('expanded');
+        minimizeBtn.textContent = '➕';
+    } else {
+        minimizeBtn.textContent = '➖';
+    }
 }
 
 function escapeHtml(text) {
