@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Retro Chatroom (2007 Style)</title>
+    <style>
+        body {
+            font-family: "Courier New", monospace;
+            background-color: #000;
+            color: #0f0;
+            margin: 0;
+            padding: 10px;
+        }
+        #chat {
+            height: 300px;
+            width: 400px;
+            border: 2px solid #0f0;
+            padding: 10px;
+            overflow-y: scroll;
+            background-color: #000;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        #nick {
+            background-color: #333;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px;
+            width: 100px;
+        }
+        #message {
+            background-color: #333;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px;
+            width: 250px;
+        }
+        button {
+            background-color: #333;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0f0;
+            color: #000;
+        }
+        .blink {
+            text-decoration: blink;
+            color: #ff0;
+        }
+        .message {
+            margin: 2px 0;
+            padding: 2px;
+            border-bottom: 1px dashed #0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Retro Chatroom <span class="blink">_</span></h1>
+    <div id="chat"></div>
+    <div>
+        <input id="nick" placeholder="Nickname" value="Guest">
+        <input id="message" placeholder="Type a message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        // Load messages from localStorage
+        function loadMessages() {
+            const chat = document.getElementById('chat');
+            const messages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
+            chat.innerHTML = '';
+            messages.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'message';
+                div.innerHTML = `<strong>${msg.nick}:</strong> ${emoticonReplace(msg.text)}`;
+                chat.appendChild(div);
+            });
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        // Replace emoticons with images (retro style!)
+        function emoticonReplace(text) {
+            const emoticonMap = {
+                ':)': '😊',
+                ':(': '😢',
+                ';)': '😉',
+                ':D': '😄',
+                ':P': '😛'
+            };
+            return text.replace(/(:\)|:\(|;\)|:D|:P)/g, match => emoticonMap[match] || match);
+        }
+
+        // Send a new message
+        function sendMessage() {
+            const nick = document.getElementById('nick').value || 'Guest';
+            const message = document.getElementById('message').value;
+            if (!message) return;
+
+            const messages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
+            messages.push({ nick, text: message });
+            localStorage.setItem('chatMessages', JSON.stringify(messages));
+
+            document.getElementById('message').value = '';
+            loadMessages();
+        }
+
+        // Poll for new messages (simulated)
+        setInterval(loadMessages, 1000);
+
+        // Load initial messages
+        loadMessages();
+
+        // Allow pressing Enter to send
+        document.getElementById('message').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>

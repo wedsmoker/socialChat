@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1socialChat - Feed</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">1socialChat</h1>
+            <div class="nav-user">
+                <span id="navUsername"></span>
+                <a href="#" id="viewProfile">My Profile</a>
+                <button id="logoutBtn" class="btn-secondary">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <div class="content-wrapper">
+            <!-- Create Post Section -->
+            <div class="create-post-section">
+                <div class="post-input-header">
+                    <img id="userAvatar" src="" alt="Avatar" class="user-avatar">
+                    <span id="createPostUsername"></span>
+                </div>
+                <textarea id="postContent" placeholder="Share your thoughts or upload media..." maxlength="5000"></textarea>
+
+                <div class="post-media-preview" id="mediaPreview" style="display: none;">
+                    <img id="mediaPreviewImg" src="" alt="Preview" style="display: none;">
+                    <video id="mediaPreviewVideo" controls style="display: none;"></video>
+                    <button class="btn-remove-media" id="removeMediaBtn">Remove</button>
+                </div>
+
+                <div class="post-actions">
+                    <div class="post-buttons">
+                        <label for="imageUpload" class="btn-icon" title="Upload Image">
+                            <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                            📷 Image
+                        </label>
+                        <label for="videoUpload" class="btn-icon" title="Upload Video">
+                            <input type="file" id="videoUpload" accept="video/*" style="display: none;">
+                            🎥 Video
+                        </label>
+                    </div>
+                    <button id="createPostBtn" class="btn-primary">Post</button>
+                </div>
+            </div>
+
+            <!-- Posts Feed -->
+            <div class="posts-container" id="postsContainer">
+                <div class="loading">Loading posts...</div>
+            </div>
+        </div>
+
+        <!-- Chatroom Section -->
+        <div class="chat-section" id="chatSection">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <h3 id="currentChatroomName">Chatroom</h3>
+                    <button class="btn-expand" id="expandChatBtn">⬆️</button>
+                </div>
+                <div class="chatroom-selector">
+                    <select id="chatroomSelect">
+                        <option value="">Loading...</option>
+                    </select>
+                    <button class="btn-icon" id="createChatroomBtn">+</button>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="loading">Loading messages...</div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                <span></span>
+            </div>
+
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Type a message..." maxlength="2000">
+                <button id="sendMessageBtn" class="btn-primary">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/posts.js"></script>
+    <script src="/js/chat.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - 1socialChat</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo"><a href="/">1socialChat</a></h1>
+            <div class="nav-user">
+                <a href="/" class="btn-secondary">Back to Feed</a>
+                <button id="logoutBtn" class="btn-secondary">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="profile-container">
+        <div class="profile-header">
+            <div class="profile-avatar-container">
+                <img id="profileAvatar" src="" alt="Profile Picture" class="profile-avatar">
+                <button id="editProfileBtn" class="btn-edit" style="display: none;">Edit Profile</button>
+            </div>
+
+            <div class="profile-info">
+                <h2 id="profileUsername"></h2>
+                <p id="profileBio" class="profile-bio"></p>
+                <div id="profileLinks" class="profile-links"></div>
+                <p class="profile-joined">Joined: <span id="profileJoined"></span></p>
+            </div>
+        </div>
+
+        <!-- Edit Profile Modal -->
+        <div id="editProfileModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-modal" id="closeEditModal">&times;</span>
+                <h2>Edit Profile</h2>
+
+                <form id="editProfileForm">
+                    <div class="form-group">
+                        <label for="editBio">Bio</label>
+                        <textarea id="editBio" maxlength="500" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editLinks">Links (JSON format)</label>
+                        <textarea id="editLinks" rows="3" placeholder='{"website": "https://example.com", "twitter": "@username"}'></textarea>
+                        <small>Format: {"label": "url", ...}</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProfilePicture">Profile Picture</label>
+                        <input type="file" id="editProfilePicture" accept="image/*">
+                        <small>Max 10MB</small>
+                    </div>
+
+                    <div class="error-message" id="editErrorMessage"></div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-secondary" id="cancelEditBtn">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- User's Posts -->
+        <div class="profile-posts">
+            <h3>Posts</h3>
+            <div id="profilePostsContainer" class="posts-container">
+                <div class="loading">Loading posts...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/profile.js"></script>
+</body>
+</html>
