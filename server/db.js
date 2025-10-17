@@ -50,6 +50,14 @@ const initDatabase = async () => {
       await pool.query(migration);
       console.log('Moderation features migrated successfully');
     }
+
+    // Run Phase 0 features migration (visibility, audio, tags)
+    const phase0MigrationPath = path.join(__dirname, 'migrations', 'add_phase0_features.sql');
+    if (fs.existsSync(phase0MigrationPath)) {
+      const phase0Migration = fs.readFileSync(phase0MigrationPath, 'utf8');
+      await pool.query(phase0Migration);
+      console.log('Phase 0 features migrated successfully (visibility, audio, tags)');
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;

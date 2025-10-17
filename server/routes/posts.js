@@ -8,17 +8,29 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
   const offset = parseInt(req.query.offset) || 0;
+  const userId = req.session?.userId;
 
   try {
     const result = await query(
       `SELECT p.*, u.username, u.profile_picture as user_profile_picture,
-       (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count
+       (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
+       COALESCE(
+         json_agg(
+           DISTINCT jsonb_build_object('id', t.id, 'name', t.name)
+         ) FILTER (WHERE t.id IS NOT NULL),
+         '[]'
+       ) as tags
        FROM posts p
        JOIN users u ON p.user_id = u.id
-       WHERE p.deleted_by_mod = FALSE AND u.is_banned = FALSE
+       LEFT JOIN post_tags pt ON p.id = pt.post_id
+       LEFT JOIN tags t ON pt.tag_id = t.id
+       WHERE p.deleted_by_mod = FALSE
+         AND u.is_banned = FALSE
+         AND (p.visibility = 'public' OR p.user_id = $3)
+       GROUP BY p.id, u.id, u.username, u.profile_picture
        ORDER BY p.created_at DESC
        LIMIT $1 OFFSET $2`,
-      [limit, offset]
+      [limit, offset, userId || null]
     );
 
     res.json({ posts: result.rows });
@@ -53,9 +65,17 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Helper function to parse hashtags from content
+const parseHashtags = (content) => {
+  const hashtagRegex = /#(\w+)/g;
+  const matches = content.match(hashtagRegex);
+  if (!matches) return [];
+  return [...new Set(matches.map(tag => tag.substring(1).toLowerCase()))];
+};
+
 // Create new post
 router.post('/', requireAuth, async (req, res) => {
-  const { content, media_type, media_data } = req.body;
+  const { content, media_type, media_data, visibility, audio_duration, audio_format } = req.body;
 
   // Validation
   if (!content || content.trim().length === 0) {
@@ -66,30 +86,67 @@ router.post('/', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Content exceeds 5000 characters' });
   }
 
-  // Validate media size (10MB limit for Base64)
-  if (media_data && media_data.length > 10 * 1024 * 1024) {
-    return res.status(400).json({ error: 'Media exceeds 10MB limit' });
+  // Validate media size (20MB limit for audio, 10MB for image/video)
+  const maxSize = media_type === 'audio' ? 20 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (media_data && media_data.length > maxSize) {
+    return res.status(400).json({ error: `Media exceeds ${maxSize / (1024 * 1024)}MB limit` });
   }
 
   // Validate media type
-  if (media_type && !['image', 'video'].includes(media_type)) {
-    return res.status(400).json({ error: 'Invalid media type. Must be "image" or "video"' });
+  if (media_type && !['image', 'video', 'audio'].includes(media_type)) {
+    return res.status(400).json({ error: 'Invalid media type. Must be "image", "video", or "audio"' });
   }
 
+  // Validate visibility
+  const validVisibility = ['public', 'friends', 'private'];
+  const postVisibility = visibility && validVisibility.includes(visibility) ? visibility : 'public';
+
   try {
+    // Insert post
     const result = await query(
-      `INSERT INTO posts (user_id, content, media_type, media_data)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, user_id, content, media_type, media_data, created_at, updated_at`,
-      [req.session.userId, content, media_type || null, media_data || null]
+      `INSERT INTO posts (user_id, content, media_type, media_data, visibility, audio_duration, audio_format)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, user_id, content, media_type, media_data, visibility, audio_duration, audio_format, created_at, updated_at`,
+      [req.session.userId, content, media_type || null, media_data || null, postVisibility, audio_duration || null, audio_format || null]
     );
 
     const post = result.rows[0];
+
+    // Parse and insert hashtags
+    const hashtags = parseHashtags(content);
+    if (hashtags.length > 0) {
+      for (const tagName of hashtags) {
+        // Insert or get tag
+        const tagResult = await query(
+          `INSERT INTO tags (name, use_count)
+           VALUES ($1, 1)
+           ON CONFLICT (name) DO UPDATE SET use_count = tags.use_count + 1
+           RETURNING id`,
+          [tagName]
+        );
+
+        // Link tag to post
+        await query(
+          `INSERT INTO post_tags (post_id, tag_id)
+           VALUES ($1, $2)
+           ON CONFLICT (post_id, tag_id) DO NOTHING`,
+          [post.id, tagResult.rows[0].id]
+        );
+      }
+    }
 
     // Get user info for the response
     const userResult = await query(
       'SELECT username, profile_picture FROM users WHERE id = $1',
       [req.session.userId]
+    );
+
+    // Get tags for response
+    const tagsResult = await query(
+      `SELECT t.id, t.name FROM tags t
+       INNER JOIN post_tags pt ON t.id = pt.tag_id
+       WHERE pt.post_id = $1`,
+      [post.id]
     );
 
     res.status(201).json({
@@ -98,7 +155,8 @@ router.post('/', requireAuth, async (req, res) => {
         ...post,
         username: userResult.rows[0].username,
         user_profile_picture: userResult.rows[0].profile_picture,
-        reaction_count: 0
+        reaction_count: 0,
+        tags: tagsResult.rows
       }
     });
   } catch (error) {

@@ -107,12 +107,45 @@ function renderPost(post) {
     const isOwner = currentUser && post.user_id === currentUser.id;
     const avatarUrl = post.user_profile_picture || `https://ui-avatars.com/api/?name=${post.username}&background=random`;
 
+    // Render media based on type
     let mediaHtml = '';
     if (post.media_type === 'image' && post.media_data) {
         mediaHtml = `<img src="${post.media_data}" alt="Post image" class="post-media">`;
     } else if (post.media_type === 'video' && post.media_data) {
         mediaHtml = `<video src="${post.media_data}" controls class="post-media"></video>`;
+    } else if (post.media_type === 'audio' && post.media_data) {
+        const duration = post.audio_duration ? formatDuration(post.audio_duration) : '';
+        mediaHtml = `
+            <div class="post-audio">
+                <audio controls class="audio-player">
+                    <source src="${post.media_data}" type="audio/${post.audio_format || 'mpeg'}">
+                    Your browser does not support audio playback.
+                </audio>
+                ${duration ? `<span class="audio-duration">${duration}</span>` : ''}
+            </div>
+        `;
     }
+
+    // Render tags
+    let tagsHtml = '';
+    if (post.tags && Array.isArray(post.tags) && post.tags.length > 0) {
+        tagsHtml = `
+            <div class="post-tags">
+                ${post.tags.map(tag => `<span class="tag" data-tag="${tag.name}">#${tag.name}</span>`).join('')}
+            </div>
+        `;
+    }
+
+    // Visibility indicator
+    let visibilityHtml = '';
+    if (post.visibility === 'friends') {
+        visibilityHtml = '<span class="visibility-indicator" title="Friends Only">👥 Friends</span>';
+    } else if (post.visibility === 'private') {
+        visibilityHtml = '<span class="visibility-indicator" title="Private">🔒 Private</span>';
+    }
+
+    // Linkify hashtags in content
+    const contentWithLinks = linkifyHashtags(escapeHtml(post.content));
 
     return `
         <div class="post" data-post-id="${post.id}">
@@ -122,12 +155,24 @@ function renderPost(post) {
                     <span class="post-username">${post.username}</span>
                     <span class="post-time">${formatDate(post.created_at)}</span>
                     ${post.updated_at !== post.created_at ? '<span class="post-edited">(edited)</span>' : ''}
+                    ${visibilityHtml}
                 </div>
             </div>
-            <div class="post-content">${escapeHtml(post.content)}</div>
+            <div class="post-content">${contentWithLinks}</div>
             ${mediaHtml}
+            ${tagsHtml}
         </div>
     `;
+}
+
+function linkifyHashtags(text) {
+    return text.replace(/#(\w+)/g, '<span class="hashtag">#$1</span>');
+}
+
+function formatDuration(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 function setupProfileUI() {

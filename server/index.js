@@ -12,6 +12,7 @@ const postsRoutes = require('./routes/posts');
 const profilesRoutes = require('./routes/profiles');
 const chatroomsRoutes = require('./routes/chatrooms');
 const moderationRoutes = require('./routes/moderation');
+const tagsRoutes = require('./routes/tags');
 const chatHandler = require('./socketHandlers/chat');
 
 const app = express();
@@ -53,6 +54,7 @@ app.use('/api/posts', postsRoutes);
 app.use('/api/profiles', profilesRoutes);
 app.use('/api/chatrooms', chatroomsRoutes);
 app.use('/api/moderation', moderationRoutes);
+app.use('/api/tags', tagsRoutes);
 
 // Socket.io connection handler
 chatHandler(io);

@@ -20,6 +20,13 @@
     </nav>
 
     <div class="main-container">
+        <!-- Sidebar for Trending Tags -->
+        <div class="sidebar">
+            <div id="trendingTags" class="trending-tags-widget">
+                <!-- Trending tags will be loaded here -->
+            </div>
+        </div>
+
         <div class="content-wrapper">
             <!-- Create Post Section -->
             <div class="create-post-section">
@@ -27,11 +34,12 @@
                     <img id="userAvatar" src="" alt="Avatar" class="user-avatar">
                     <span id="createPostUsername"></span>
                 </div>
-                <textarea id="postContent" placeholder="Share your thoughts or upload media..." maxlength="5000"></textarea>
+                <textarea id="postContent" placeholder="Share your thoughts, upload media, or use #hashtags..." maxlength="5000"></textarea>
 
                 <div class="post-media-preview" id="mediaPreview" style="display: none;">
                     <img id="mediaPreviewImg" src="" alt="Preview" style="display: none;">
                     <video id="mediaPreviewVideo" controls style="display: none;"></video>
+                    <audio id="mediaPreviewAudio" controls style="display: none;"></audio>
                     <button class="btn-remove-media" id="removeMediaBtn">Remove</button>
                 </div>
 
@@ -45,10 +53,22 @@
                             <input type="file" id="videoUpload" accept="video/*" style="display: none;">
                             🎥 Video
                         </label>
+                        <label for="audioUpload" class="btn-icon" title="Upload Audio">
+                            <input type="file" id="audioUpload" accept="audio/*" style="display: none;">
+                            🎵 Audio
+                        </label>
                     </div>
+                    <select id="postVisibility" class="visibility-selector" title="Post Visibility">
+                        <option value="public">🌍 Public</option>
+                        <option value="friends">👥 Friends</option>
+                        <option value="private">🔒 Private</option>
+                    </select>
                     <button id="createPostBtn" class="btn-primary">Post</button>
                 </div>
             </div>
+
+            <!-- Tag Filter Indicator -->
+            <div id="activeFilter" class="active-filter" style="display: none;"></div>
 
             <!-- Posts Feed -->
             <div class="posts-container" id="postsContainer">
