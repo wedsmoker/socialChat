@@ -491,6 +491,18 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     font-size: 1.1rem;
 }
 
+.chatroom-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.user-count {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: normal;
+}
+
 .chat-controls {
     display: flex;
     gap: 0.5rem;

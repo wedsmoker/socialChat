@@ -13,6 +13,7 @@
             <div class="nav-user">
                 <span id="navUsername"></span>
                 <a href="#" id="viewProfile">My Profile</a>
+                <a href="/moderation.html" id="moderationLink" style="display: none;">🛡️ Moderation</a>
                 <button id="logoutBtn" class="btn-secondary">Logout</button>
             </div>
         </div>
@@ -59,7 +60,10 @@
         <div class="chat-section" id="chatSection">
             <div class="chat-header">
                 <div class="chat-title">
-                    <h3 id="currentChatroomName">Chatroom</h3>
+                    <div class="chatroom-info">
+                        <h3 id="currentChatroomName">Chatroom</h3>
+                        <span class="user-count" id="userCount">👤 0 online</span>
+                    </div>
                     <div class="chat-controls">
                         <button class="btn-minimize" id="minimizeChatBtn">➖</button>
                         <button class="btn-expand" id="expandChatBtn">⬆️</button>

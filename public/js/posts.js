@@ -183,7 +183,11 @@ function renderPost(post) {
                         <button class="btn-edit-post" data-post-id="${post.id}">Edit</button>
                         <button class="btn-delete-post" data-post-id="${post.id}">Delete</button>
                     </div>
-                ` : ''}
+                ` : `
+                    <div class="post-actions-menu">
+                        <button class="btn-report-post" data-post-id="${post.id}" data-user-id="${post.user_id}">🚩 Report</button>
+                    </div>
+                `}
             </div>
             <div class="post-content">${escapeHtml(post.content)}</div>
             ${mediaHtml}
@@ -205,6 +209,11 @@ function attachPostEventListeners() {
     // Delete post buttons
     document.querySelectorAll('.btn-delete-post').forEach(btn => {
         btn.addEventListener('click', handleDeletePost);
+    });
+
+    // Report post buttons
+    document.querySelectorAll('.btn-report-post').forEach(btn => {
+        btn.addEventListener('click', handleReportPost);
     });
 
     // Reaction buttons
@@ -262,6 +271,39 @@ async function handleDeletePost(e) {
     } catch (error) {
         console.error('Delete post error:', error);
         alert('Failed to delete post');
+    }
+}
+
+async function handleReportPost(e) {
+    const postId = e.target.dataset.postId;
+    const userId = e.target.dataset.userId;
+
+    const reason = prompt('Please provide a reason for reporting this post:');
+    if (!reason || reason.trim().length === 0) return;
+
+    try {
+        const response = await fetch('/api/moderation/report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                report_type: 'post',
+                reported_user_id: parseInt(userId),
+                content_id: parseInt(postId),
+                reason: reason.trim()
+            })
+        });
+
+        if (response.ok) {
+            alert('Post reported successfully. Moderators will review your report.');
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to report post');
+        }
+    } catch (error) {
+        console.error('Report post error:', error);
+        alert('Failed to report post');
     }
 }
 

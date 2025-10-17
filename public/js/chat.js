@@ -43,12 +43,23 @@ function initializeChat() {
         hideTypingIndicator();
     });
 
+    socket.on('user_count_update', (data) => {
+        updateUserCount(data.userCount);
+    });
+
     socket.on('error', (data) => {
         console.error('Socket error:', data.message);
         alert(data.message);
     });
 
     setupChatUI();
+}
+
+function updateUserCount(count) {
+    const userCountElement = document.getElementById('userCount');
+    if (userCountElement) {
+        userCountElement.textContent = `👤 ${count} online`;
+    }
 }
 
 function setupChatUI() {
@@ -168,7 +179,9 @@ function displayMessage(message, scrollDown = true) {
                 <span class="message-time">${formatDate(message.created_at)}</span>
             </div>
             <div class="message-text">${escapeHtml(message.message)}</div>
-            ${isOwn ? `<button class="btn-delete-message" data-message-id="${message.id}">Delete</button>` : ''}
+            <div class="message-actions">
+                ${isOwn ? `<button class="btn-delete-message" data-message-id="${message.id}">Delete</button>` : `<button class="btn-report-message" data-message-id="${message.id}" data-user-id="${message.user_id}">🚩 Report</button>`}
+            </div>
         </div>
     `;
 
@@ -178,6 +191,12 @@ function displayMessage(message, scrollDown = true) {
     if (isOwn) {
         const deleteBtn = messageDiv.querySelector('.btn-delete-message');
         deleteBtn.addEventListener('click', () => deleteMessage(message.id));
+    } else {
+        // Attach report listener
+        const reportBtn = messageDiv.querySelector('.btn-report-message');
+        if (reportBtn) {
+            reportBtn.addEventListener('click', () => reportMessage(message.id, message.user_id));
+        }
     }
 
     if (scrollDown) {
@@ -198,6 +217,36 @@ function removeMessage(messageId) {
     const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
     if (messageElement) {
         messageElement.remove();
+    }
+}
+
+async function reportMessage(messageId, userId) {
+    const reason = prompt('Please provide a reason for reporting this message:');
+    if (!reason || reason.trim().length === 0) return;
+
+    try {
+        const response = await fetch('/api/moderation/report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                report_type: 'message',
+                reported_user_id: userId,
+                content_id: messageId,
+                reason: reason.trim()
+            })
+        });
+
+        if (response.ok) {
+            alert('Message reported successfully. Moderators will review your report.');
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to report message');
+        }
+    } catch (error) {
+        console.error('Report message error:', error);
+        alert('Failed to report message');
     }
 }
 

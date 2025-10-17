@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderation Dashboard - 1SocialChat</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/moderation.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">1SocialChat</div>
+        <div class="nav-links">
+            <a href="/">Feed</a>
+            <a href="/profile.html">Profile</a>
+            <a href="/moderation.html" class="active">Moderation</a>
+            <button id="logoutBtn" class="btn-logout">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container moderation-container">
+        <h1>🛡️ Moderation Dashboard</h1>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="pendingReportsCount">0</div>
+                <div class="stat-label">Pending Reports</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="bannedUsersCount">0</div>
+                <div class="stat-label">Banned Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalUsersCount">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="removedPostsCount">0</div>
+                <div class="stat-label">Removed Posts</div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="reports">Reports</button>
+            <button class="tab-btn" data-tab="users">Users</button>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="reportsTab" class="tab-content active">
+            <div class="filter-controls">
+                <label>
+                    Status:
+                    <select id="reportStatusFilter">
+                        <option value="pending">Pending</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </label>
+                <button id="refreshReportsBtn" class="btn-secondary">🔄 Refresh</button>
+            </div>
+
+            <div id="reportsContainer" class="reports-list">
+                <p class="loading-message">Loading reports...</p>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="usersTab" class="tab-content">
+            <div class="filter-controls">
+                <button id="refreshUsersBtn" class="btn-secondary">🔄 Refresh</button>
+            </div>
+
+            <div id="usersContainer" class="users-list">
+                <p class="loading-message">Loading users...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/moderation.js"></script>
+</body>
+</html>

@@ -15,6 +15,7 @@ router.get('/', async (req, res) => {
        (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count
        FROM posts p
        JOIN users u ON p.user_id = u.id
+       WHERE p.deleted_by_mod = FALSE AND u.is_banned = FALSE
        ORDER BY p.created_at DESC
        LIMIT $1 OFFSET $2`,
       [limit, offset]

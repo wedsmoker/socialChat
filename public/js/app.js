@@ -38,9 +38,28 @@ async function checkAuth() {
             }
         }
 
+        // Check admin status and show moderation link if admin
+        await checkAdminStatus();
+
     } catch (error) {
         console.error('Auth check error:', error);
         window.location.href = '/login.html';
+    }
+}
+
+async function checkAdminStatus() {
+    try {
+        const response = await fetch('/api/auth/session');
+        const data = await response.json();
+
+        if (data.isAuthenticated && data.user.isAdmin) {
+            const moderationLink = document.getElementById('moderationLink');
+            if (moderationLink) {
+                moderationLink.style.display = 'inline';
+            }
+        }
+    } catch (error) {
+        console.error('Admin check error:', error);
     }
 }
 

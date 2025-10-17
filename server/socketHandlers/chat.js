@@ -1,5 +1,12 @@
 const { query } = require('../db');
 
+// Helper function to broadcast user count for a chatroom
+const broadcastUserCount = (io, chatroomId) => {
+  const room = io.sockets.adapter.rooms.get(`chatroom_${chatroomId}`);
+  const userCount = room ? room.size : 0;
+  io.to(`chatroom_${chatroomId}`).emit('user_count_update', { userCount });
+};
+
 module.exports = (io) => {
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
@@ -16,8 +23,12 @@ module.exports = (io) => {
 
     console.log(`Authenticated user connected: ${username}`);
 
+    // Track current chatroom
+    let currentChatroomId = null;
+
     // Join a chatroom
     socket.on('join_chatroom', async (chatroomId) => {
+      currentChatroomId = chatroomId;
       try {
         // Verify chatroom exists
         const result = await query(
@@ -38,6 +49,9 @@ module.exports = (io) => {
           chatroomId,
           chatroomName: chatroom.name
         });
+
+        // Broadcast updated user count
+        broadcastUserCount(io, chatroomId);
       } catch (error) {
         console.error('Join chatroom error:', error);
         socket.emit('error', { message: 'Failed to join chatroom' });
@@ -48,6 +62,9 @@ module.exports = (io) => {
     socket.on('leave_chatroom', (chatroomId) => {
       socket.leave(`chatroom_${chatroomId}`);
       console.log(`${username} left chatroom ${chatroomId}`);
+
+      // Broadcast updated user count
+      broadcastUserCount(io, chatroomId);
     });
 
     // Send message to chatroom
@@ -152,6 +169,11 @@ module.exports = (io) => {
 
     socket.on('disconnect', () => {
       console.log('User disconnected:', username);
+
+      // Broadcast updated user count for the chatroom they were in
+      if (currentChatroomId) {
+        broadcastUserCount(io, currentChatroomId);
+      }
     });
   });
 };

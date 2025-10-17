@@ -146,4 +146,36 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
+// Get session info (including admin status)
+router.get('/session', async (req, res) => {
+  if (!req.session.userId) {
+    return res.json({ isAuthenticated: false });
+  }
+
+  try {
+    const result = await query(
+      'SELECT id, username, is_admin FROM users WHERE id = $1',
+      [req.session.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ isAuthenticated: false });
+    }
+
+    const user = result.rows[0];
+
+    res.json({
+      isAuthenticated: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        isAdmin: user.is_admin
+      }
+    });
+  } catch (error) {
+    console.error('Session check error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

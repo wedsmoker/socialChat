@@ -37,11 +37,19 @@ const initDatabase = async () => {
   const path = require('path');
 
   try {
+    // Run main schema
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
-
     await pool.query(schema);
     console.log('Database schema initialized successfully');
+
+    // Run moderation migration
+    const migrationPath = path.join(__dirname, 'migrations', 'add_moderation.sql');
+    if (fs.existsSync(migrationPath)) {
+      const migration = fs.readFileSync(migrationPath, 'utf8');
+      await pool.query(migration);
+      console.log('Moderation features migrated successfully');
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
