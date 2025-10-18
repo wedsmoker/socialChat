@@ -26,6 +26,7 @@ body {
     background-color: var(--primary-bg);
     color: var(--text-primary);
     line-height: 1.6;
+    zoom: 0.7;
 }
 
 a {
@@ -317,7 +318,7 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 /* Posts Feed */
 .posts-container {
-    max-height: calc(100vh - 300px);
+    max-height: calc(100vh - 150px);
     overflow-y: auto;
     padding-right: 0.5rem;
 }
