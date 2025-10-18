@@ -9,7 +9,10 @@
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <h1 class="nav-logo"><a href="/">1socialChat</a></h1>
+            <h1 class="nav-logo">
+                <a href="/" class="logo-main">1socialChat</a>
+                <span class="logo-tagline">Zero billionaires. 100% artist-owned.</span>
+            </h1>
             <div class="nav-user">
                 <a href="/" class="btn-secondary">Back to Feed</a>
                 <button id="logoutBtn" class="btn-secondary">Logout</button>
@@ -18,6 +21,16 @@
     </nav>
 
     <div class="profile-container">
+        <!-- Friends Panel (Left Side) -->
+        <div class="friends-panel" id="friendsPanel">
+            <h3>Top Friends</h3>
+            <div id="friendsPanelList" class="friends-panel-list">
+                <div class="loading">Loading friends...</div>
+            </div>
+        </div>
+
+        <!-- Main Profile Content -->
+        <div class="profile-main">
         <div class="profile-header">
             <div class="profile-avatar-container">
                 <img id="profileAvatar" src="" alt="Profile Picture" class="profile-avatar">
@@ -74,6 +87,7 @@
                 <div class="loading">Loading posts...</div>
             </div>
         </div>
+        </div> <!-- End profile-main -->
     </div>
 
     <script src="/js/profile.js"></script>

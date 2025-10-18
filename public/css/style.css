@@ -58,15 +58,25 @@ a:hover {
 
 .nav-logo {
     font-size: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.logo-main {
     background: var(--gradient-1);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    text-decoration: none;
+    display: inline-block;
 }
 
-.nav-logo a {
-    color: inherit;
-    text-decoration: none;
+.logo-tagline {
+    font-size: 0.75rem;
+    color: #00ff41;
+    font-weight: 400;
+    text-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
 }
 
 .nav-user {
@@ -151,13 +161,23 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     border: 1px solid var(--border);
 }
 
-.auth-box h1 {
+.auth-logo {
     text-align: center;
+    margin-bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.auth-logo .logo-main {
     background: var(--gradient-1);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 0.5rem;
+}
+
+.auth-logo .logo-tagline {
+    font-size: 0.7rem;
 }
 
 .auth-box h2 {
@@ -406,6 +426,18 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     max-width: 100%;
     border-radius: 8px;
     margin-bottom: 1rem;
+}
+
+.youtube-embed {
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.youtube-embed iframe {
+    display: block;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
 }
 
 .post-footer {
@@ -664,9 +696,31 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 /* Profile Page */
 .profile-container {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 2rem 1rem;
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.profile-main {
+    min-width: 0;
+}
+
+@media (max-width: 900px) {
+    .profile-container {
+        grid-template-columns: 1fr;
+    }
+
+    .friends-panel {
+        order: 2;
+    }
+
+    .profile-main {
+        order: 1;
+    }
 }
 
 .profile-header {
@@ -766,6 +820,114 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 .profile-posts h3 {
     margin-bottom: 1rem;
+}
+
+/* Friends Panel (MySpace-style Top Friends) */
+.friends-panel {
+    background: var(--secondary-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.friends-panel h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.friends-panel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.friend-panel-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.friend-panel-item:hover {
+    transform: translateX(3px);
+    border-color: var(--accent);
+}
+
+.friend-panel-item.draggable {
+    cursor: grab;
+}
+
+.friend-panel-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.friend-panel-item.drag-over {
+    border-color: var(--accent);
+    border-style: dashed;
+}
+
+.friend-panel-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent);
+    flex-shrink: 0;
+}
+
+.friend-panel-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.friend-panel-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    text-decoration: none;
+}
+
+.friend-panel-name:hover {
+    color: var(--accent);
+}
+
+.drag-handle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    cursor: grab;
+    user-select: none;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.friends-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.friends-panel::-webkit-scrollbar-track {
+    background: var(--primary-bg);
+}
+
+.friends-panel::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
 }
 
 /* Modal */

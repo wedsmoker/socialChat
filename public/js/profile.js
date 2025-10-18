@@ -6,6 +6,7 @@ let profileUser = null;
 document.addEventListener('DOMContentLoaded', async () => {
     await checkAuth();
     await loadProfile();
+    await loadFriendsPanel();
     setupProfileUI();
 });
 
@@ -465,5 +466,171 @@ async function unfriend(friendshipId) {
     } catch (error) {
         console.error('Unfriend error:', error);
         alert('Failed to unfriend');
+    }
+}
+
+// ===== Friends Panel (MySpace-style Top Friends) =====
+
+let friendsList = [];
+let draggedElement = null;
+
+async function loadFriendsPanel() {
+    if (!profileUser) {
+        console.log('loadFriendsPanel: profileUser is null');
+        return;
+    }
+
+    console.log('loadFriendsPanel: Loading friends for user ID', profileUser.id);
+    const friendsPanelList = document.getElementById('friendsPanelList');
+
+    try {
+        const response = await fetch(`/api/friends/user/${profileUser.id}`);
+        console.log('loadFriendsPanel: Response status', response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('loadFriendsPanel: Error response', errorData);
+            friendsPanelList.innerHTML = '<p class="no-results">No friends yet</p>';
+            return;
+        }
+
+        const data = await response.json();
+        console.log('loadFriendsPanel: Received data', data);
+        friendsList = data.friends || [];
+        console.log('loadFriendsPanel: Friends list length', friendsList.length);
+
+        if (friendsList.length === 0) {
+            friendsPanelList.innerHTML = '<p class="no-results">No friends yet</p>';
+            return;
+        }
+
+        renderFriendsList();
+    } catch (error) {
+        console.error('Load friends panel error:', error);
+        friendsPanelList.innerHTML = '<p class="error">Failed to load friends</p>';
+    }
+}
+
+function renderFriendsList() {
+    const friendsPanelList = document.getElementById('friendsPanelList');
+    const isOwnProfile = currentUser && profileUser && currentUser.id === profileUser.id;
+
+    friendsPanelList.innerHTML = friendsList.map((friend, index) => {
+        const avatarUrl = friend.profile_picture || `https://ui-avatars.com/api/?name=${friend.username}&background=random`;
+
+        return `
+            <div class="friend-panel-item ${isOwnProfile ? 'draggable' : ''}"
+                 data-friend-id="${friend.friend_id}"
+                 data-friendship-id="${friend.id}"
+                 data-index="${index}"
+                 ${isOwnProfile ? 'draggable="true"' : ''}>
+                ${isOwnProfile ? '<span class="drag-handle">☰</span>' : ''}
+                <img src="${avatarUrl}" alt="${friend.username}" class="friend-panel-avatar">
+                <div class="friend-panel-info">
+                    <a href="/profile.html?username=${friend.username}" class="friend-panel-name">${friend.username}</a>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Setup drag and drop if it's the user's own profile
+    if (isOwnProfile) {
+        setupDragAndDrop();
+    }
+}
+
+function setupDragAndDrop() {
+    const items = document.querySelectorAll('.friend-panel-item.draggable');
+
+    items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+function handleDragStart(e) {
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', this.innerHTML);
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+
+    // Remove drag-over class from all items
+    document.querySelectorAll('.friend-panel-item').forEach(item => {
+        item.classList.remove('drag-over');
+    });
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+
+    e.dataTransfer.dropEffect = 'move';
+
+    if (this !== draggedElement) {
+        this.classList.add('drag-over');
+    }
+
+    return false;
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+
+    this.classList.remove('drag-over');
+
+    if (draggedElement !== this) {
+        const draggedIndex = parseInt(draggedElement.dataset.index);
+        const targetIndex = parseInt(this.dataset.index);
+
+        // Reorder the friendsList array
+        const [removed] = friendsList.splice(draggedIndex, 1);
+        friendsList.splice(targetIndex, 0, removed);
+
+        // Re-render the list
+        renderFriendsList();
+
+        // Save the new order to the server
+        saveFriendOrder();
+    }
+
+    return false;
+}
+
+async function saveFriendOrder() {
+    try {
+        // Build array of {friendshipId, displayOrder}
+        const friendOrders = friendsList.map((friend, index) => ({
+            friendshipId: friend.id,
+            displayOrder: friendsList.length - index // Higher number = higher priority
+        }));
+
+        const response = await fetch('/api/friends/reorder', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ friendOrders })
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            console.error('Failed to save friend order:', data.error);
+        }
+    } catch (error) {
+        console.error('Save friend order error:', error);
     }
 }

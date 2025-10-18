@@ -19,6 +19,7 @@ router.get('/', requireAuth, async (req, res) => {
         f.id,
         f.status,
         f.created_at,
+        f.display_order,
         f.requester_id,
         f.receiver_id,
         json_build_object(
@@ -38,13 +39,61 @@ router.get('/', requireAuth, async (req, res) => {
        JOIN users ru ON f.receiver_id = ru.id
        WHERE (f.requester_id = $1 OR f.receiver_id = $1)
          AND f.status = 'accepted'
-       ORDER BY f.created_at DESC`,
+       ORDER BY f.display_order DESC, f.created_at DESC`,
       [userId]
     );
 
     res.json({ friends: result.rows });
   } catch (error) {
     console.error('Get friends error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/friends/user/:userId - Get friends list for a specific user (public view)
+router.get('/user/:userId', async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.userId);
+    console.log('GET /api/friends/user/:userId - Target user ID:', targetUserId);
+
+    if (!targetUserId || isNaN(targetUserId)) {
+      console.log('Invalid user ID:', req.params.userId);
+      return res.status(400).json({ error: 'Invalid user ID' });
+    }
+
+    const result = await query(
+      `SELECT
+        f.id,
+        f.display_order,
+        CASE
+          WHEN f.requester_id = $1 THEN ru.id
+          ELSE rqu.id
+        END as friend_id,
+        CASE
+          WHEN f.requester_id = $1 THEN ru.username
+          ELSE rqu.username
+        END as username,
+        CASE
+          WHEN f.requester_id = $1 THEN ru.profile_picture
+          ELSE rqu.profile_picture
+        END as profile_picture,
+        CASE
+          WHEN f.requester_id = $1 THEN ru.bio
+          ELSE rqu.bio
+        END as bio
+       FROM friendships f
+       JOIN users rqu ON f.requester_id = rqu.id
+       JOIN users ru ON f.receiver_id = ru.id
+       WHERE (f.requester_id = $1 OR f.receiver_id = $1)
+         AND f.status = 'accepted'
+       ORDER BY f.display_order DESC, f.created_at DESC`,
+      [targetUserId]
+    );
+
+    console.log('Query returned', result.rows.length, 'friends');
+    res.json({ friends: result.rows });
+  } catch (error) {
+    console.error('Get user friends error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -320,6 +369,48 @@ router.get('/status/:userId', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Check friendship status error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// PUT /api/friends/reorder - Update friend display order (MySpace-style top friends)
+router.put('/reorder', requireAuth, async (req, res) => {
+  const userId = req.session.userId;
+  const { friendOrders } = req.body; // Array of {friendshipId, displayOrder}
+
+  if (!Array.isArray(friendOrders)) {
+    return res.status(400).json({ error: 'friendOrders must be an array' });
+  }
+
+  try {
+    // Verify all friendships belong to the current user
+    for (const item of friendOrders) {
+      const { friendshipId, displayOrder } = item;
+
+      if (!friendshipId || displayOrder === undefined) {
+        return res.status(400).json({ error: 'Each item must have friendshipId and displayOrder' });
+      }
+
+      // Verify ownership
+      const result = await query(
+        'SELECT id FROM friendships WHERE id = $1 AND (requester_id = $2 OR receiver_id = $2) AND status = \'accepted\'',
+        [friendshipId, userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(403).json({ error: `Unauthorized to reorder friendship ${friendshipId}` });
+      }
+
+      // Update display order
+      await query(
+        'UPDATE friendships SET display_order = $1 WHERE id = $2',
+        [displayOrder, friendshipId]
+      );
+    }
+
+    res.json({ message: 'Friend order updated successfully' });
+  } catch (error) {
+    console.error('Reorder friends error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

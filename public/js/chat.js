@@ -190,7 +190,7 @@ function displayMessage(message, scrollDown = true) {
                 }
                 <span class="message-time">${formatDate(message.created_at)}</span>
             </div>
-            <div class="message-text">${escapeHtml(message.message)}</div>
+            <div class="message-text">${embedYouTubeVideos(escapeHtml(message.message))}</div>
             ${!message.is_guest ? `
                 <div class="message-actions">
                     ${isOwn ? `<button class="btn-delete-message" data-message-id="${message.id}">Delete</button>` : `<button class="btn-report-message" data-message-id="${message.id}" data-user-id="${message.user_id}">🚩 Report</button>`}
@@ -357,4 +357,22 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function embedYouTubeVideos(text) {
+    // Match YouTube URLs: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[?&][^\s]*)?/g;
+
+    return text.replace(youtubeRegex, (match, videoId) => {
+        return `<div class="youtube-embed">
+            <iframe
+                width="100%"
+                height="200"
+                src="https://www.youtube.com/embed/${videoId}"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+            </iframe>
+        </div>`;
+    });
 }
