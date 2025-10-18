@@ -78,6 +78,14 @@ const initDatabase = async () => {
       await pool.query(phase1Migration);
       console.log('Phase 1 features migrated successfully (friends, comments, collections, guests)');
     }
+
+    // Run friend display order migration (MySpace-style top friends)
+    const friendOrderMigrationPath = path.join(__dirname, 'migrations', 'add_friend_display_order.sql');
+    if (fs.existsSync(friendOrderMigrationPath)) {
+      const friendOrderMigration = fs.readFileSync(friendOrderMigrationPath, 'utf8');
+      await pool.query(friendOrderMigration);
+      console.log('Friend display order migrated successfully (MySpace-style top friends)');
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
