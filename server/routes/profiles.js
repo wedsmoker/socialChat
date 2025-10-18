@@ -4,6 +4,31 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Search for users (MUST be before /:username route)
+router.get('/search', async (req, res) => {
+  const searchQuery = req.query.q;
+
+  if (!searchQuery || searchQuery.trim().length === 0) {
+    return res.status(400).json({ error: 'Search query is required' });
+  }
+
+  try {
+    const result = await query(
+      `SELECT id, username, bio, profile_picture, created_at
+       FROM users
+       WHERE username ILIKE $1 AND is_banned = FALSE
+       ORDER BY username
+       LIMIT 20`,
+      [`%${searchQuery}%`]
+    );
+
+    res.json({ users: result.rows });
+  } catch (error) {
+    console.error('Search users error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get user profile by username
 router.get('/:username', async (req, res) => {
   const { username } = req.params;

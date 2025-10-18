@@ -28,9 +28,19 @@ router.get('/:id/messages', async (req, res) => {
 
   try {
     const result = await query(
-      `SELECT cm.*, u.username, u.profile_picture
+      `SELECT
+         cm.id,
+         cm.chatroom_id,
+         cm.message,
+         cm.created_at,
+         cm.user_id,
+         cm.guest_name,
+         cm.guest_id,
+         COALESCE(cm.guest_name, u.username) as username,
+         u.profile_picture,
+         CASE WHEN cm.guest_id IS NOT NULL THEN true ELSE false END as is_guest
        FROM chat_messages cm
-       JOIN users u ON cm.user_id = u.id
+       LEFT JOIN users u ON cm.user_id = u.id
        WHERE cm.chatroom_id = $1
        ORDER BY cm.created_at DESC
        LIMIT $2`,

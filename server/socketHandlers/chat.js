@@ -11,17 +11,25 @@ module.exports = (io) => {
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    // Check if user is authenticated
-    const userId = socket.request.session.userId;
-    const username = socket.request.session.username;
+    // Check if user is authenticated or guest
+    const session = socket.request.session;
+    const userId = session.userId;
+    const username = session.username;
+    const isGuest = session.isGuest;
+    const guestId = session.guestId;
+    const guestName = session.guestName;
 
-    if (!userId) {
-      console.log('Unauthenticated socket connection');
+    // Allow both authenticated users and guests
+    const displayName = isGuest ? guestName : username;
+    const userIdentifier = isGuest ? guestId : userId;
+
+    if (!userIdentifier) {
+      console.log('No user identifier found');
       socket.disconnect();
       return;
     }
 
-    console.log(`Authenticated user connected: ${username}`);
+    console.log(`${isGuest ? 'Guest' : 'User'} connected: ${displayName}`);
 
     // Track current chatroom
     let currentChatroomId = null;
@@ -43,7 +51,7 @@ module.exports = (io) => {
 
         const chatroom = result.rows[0];
         socket.join(`chatroom_${chatroomId}`);
-        console.log(`${username} joined chatroom: ${chatroom.name}`);
+        console.log(`${displayName} joined chatroom: ${chatroom.name}`);
 
         socket.emit('joined_chatroom', {
           chatroomId,
@@ -61,7 +69,7 @@ module.exports = (io) => {
     // Leave a chatroom
     socket.on('leave_chatroom', (chatroomId) => {
       socket.leave(`chatroom_${chatroomId}`);
-      console.log(`${username} left chatroom ${chatroomId}`);
+      console.log(`${displayName} left chatroom ${chatroomId}`);
 
       // Broadcast updated user count
       broadcastUserCount(io, chatroomId);
@@ -82,32 +90,52 @@ module.exports = (io) => {
       }
 
       try {
-        // Insert message into database
-        const result = await query(
-          `INSERT INTO chat_messages (user_id, chatroom_id, message)
-           VALUES ($1, $2, $3)
-           RETURNING id, user_id, chatroom_id, message, created_at`,
-          [userId, chatroomId, message]
-        );
+        let messageData;
 
-        const newMessage = result.rows[0];
+        if (isGuest) {
+          // Insert guest message
+          const result = await query(
+            `INSERT INTO chat_messages (chatroom_id, message, guest_name, guest_id)
+             VALUES ($1, $2, $3, $4)
+             RETURNING id, chatroom_id, message, guest_name, guest_id, created_at`,
+            [chatroomId, message, guestName, guestId]
+          );
 
-        // Get user info
-        const userResult = await query(
-          'SELECT username, profile_picture FROM users WHERE id = $1',
-          [userId]
-        );
+          messageData = {
+            ...result.rows[0],
+            username: guestName,
+            profile_picture: null,
+            is_guest: true
+          };
+        } else {
+          // Insert authenticated user message
+          const result = await query(
+            `INSERT INTO chat_messages (user_id, chatroom_id, message)
+             VALUES ($1, $2, $3)
+             RETURNING id, user_id, chatroom_id, message, created_at`,
+            [userId, chatroomId, message]
+          );
 
-        const messageData = {
-          ...newMessage,
-          username: userResult.rows[0].username,
-          profile_picture: userResult.rows[0].profile_picture
-        };
+          const newMessage = result.rows[0];
+
+          // Get user info
+          const userResult = await query(
+            'SELECT username, profile_picture FROM users WHERE id = $1',
+            [userId]
+          );
+
+          messageData = {
+            ...newMessage,
+            username: userResult.rows[0].username,
+            profile_picture: userResult.rows[0].profile_picture,
+            is_guest: false
+          };
+        }
 
         // Broadcast message to all users in the chatroom
         io.to(`chatroom_${chatroomId}`).emit('new_message', messageData);
 
-        console.log(`Message sent by ${username} in chatroom ${chatroomId}`);
+        console.log(`Message sent by ${displayName} in chatroom ${chatroomId}`);
       } catch (error) {
         console.error('Send message error:', error);
         socket.emit('error', { message: 'Failed to send message' });
@@ -118,16 +146,18 @@ module.exports = (io) => {
     socket.on('typing', (data) => {
       const { chatroomId } = data;
       socket.to(`chatroom_${chatroomId}`).emit('user_typing', {
-        username,
-        userId
+        username: displayName,
+        userId: userIdentifier,
+        isGuest: isGuest
       });
     });
 
     socket.on('stop_typing', (data) => {
       const { chatroomId } = data;
       socket.to(`chatroom_${chatroomId}`).emit('user_stop_typing', {
-        username,
-        userId
+        username: displayName,
+        userId: userIdentifier,
+        isGuest: isGuest
       });
     });
 
@@ -168,7 +198,7 @@ module.exports = (io) => {
     });
 
     socket.on('disconnect', () => {
-      console.log('User disconnected:', username);
+      console.log('User disconnected:', displayName);
 
       // Broadcast updated user count for the chatroom they were in
       if (currentChatroomId) {

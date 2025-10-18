@@ -1,6 +1,9 @@
 // Main application logic
 
 let currentUser = null;
+let isGuest = false;
+let guestName = null;
+let guestId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     await checkAuth();
@@ -9,41 +12,120 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function checkAuth() {
     try {
-        const response = await fetch('/api/auth/me');
-
-        if (!response.ok) {
-            window.location.href = '/login.html';
-            return;
-        }
-
+        // Check session status (supports both guests and authenticated users)
+        const response = await fetch('/api/auth/session');
         const data = await response.json();
-        currentUser = data.user;
 
-        // Update UI with user info
-        if (document.getElementById('navUsername')) {
-            document.getElementById('navUsername').textContent = `@${currentUser.username}`;
-        }
+        if (data.isGuest) {
+            // Guest mode
+            isGuest = true;
+            guestName = data.guestName;
+            guestId = data.guestId;
 
-        if (document.getElementById('createPostUsername')) {
-            document.getElementById('createPostUsername').textContent = currentUser.username;
-        }
+            console.log('Guest mode activated:', guestName, guestId);
 
-        // Set user avatar
-        const userAvatar = document.getElementById('userAvatar');
-        if (userAvatar) {
-            if (currentUser.profile_picture) {
-                userAvatar.src = currentUser.profile_picture;
+            // Update UI for guest
+            if (document.getElementById('navUsername')) {
+                document.getElementById('navUsername').textContent = guestName;
+            }
+
+            // Hide post creation UI for guests
+            const createPostSection = document.querySelector('.create-post-section');
+            if (createPostSection) {
+                createPostSection.style.display = 'none';
+            }
+
+            // Show login/register prompt for guests
+            showGuestPrompt();
+
+            // Hide "My Profile" and "Friends" links for guests
+            const viewProfile = document.getElementById('viewProfile');
+            if (viewProfile) {
+                viewProfile.style.display = 'none';
+            }
+
+            const friendsLink = document.getElementById('friendsLink');
+            if (friendsLink) {
+                friendsLink.style.display = 'none';
+            }
+
+            // Change logout button to "Login" for guests
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.textContent = 'Login';
+            }
+
+        } else if (data.isAuthenticated) {
+            // Authenticated user mode
+            const userResponse = await fetch('/api/auth/me');
+            if (!userResponse.ok) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const userData = await userResponse.json();
+            currentUser = userData.user;
+
+            // Update UI with user info
+            if (document.getElementById('navUsername')) {
+                document.getElementById('navUsername').textContent = `@${currentUser.username}`;
+            }
+
+            if (document.getElementById('createPostUsername')) {
+                document.getElementById('createPostUsername').textContent = currentUser.username;
+            }
+
+            // Set user avatar
+            const userAvatar = document.getElementById('userAvatar');
+            if (userAvatar) {
+                if (currentUser.profile_picture) {
+                    userAvatar.src = currentUser.profile_picture;
+                } else {
+                    userAvatar.src = `https://ui-avatars.com/api/?name=${currentUser.username}&background=random`;
+                }
+            }
+
+            // Check admin status and show moderation link if admin
+            await checkAdminStatus();
+
+        } else {
+            // No session at all - should not happen with allowGuest middleware
+            // Try refreshing the page once to trigger guest session creation
+            if (!sessionStorage.getItem('retried')) {
+                sessionStorage.setItem('retried', 'true');
+                window.location.reload();
             } else {
-                userAvatar.src = `https://ui-avatars.com/api/?name=${currentUser.username}&background=random`;
+                sessionStorage.removeItem('retried');
+                window.location.href = '/login.html';
             }
         }
 
-        // Check admin status and show moderation link if admin
-        await checkAdminStatus();
-
     } catch (error) {
         console.error('Auth check error:', error);
-        window.location.href = '/login.html';
+        // On error, still allow guest mode by reloading
+        if (!sessionStorage.getItem('retried')) {
+            sessionStorage.setItem('retried', 'true');
+            window.location.reload();
+        } else {
+            sessionStorage.removeItem('retried');
+            window.location.href = '/login.html';
+        }
+    }
+}
+
+function showGuestPrompt() {
+    // Add a banner for guests to login/register
+    const mainContainer = document.querySelector('.main-container');
+    if (mainContainer && !document.getElementById('guestBanner')) {
+        const banner = document.createElement('div');
+        banner.id = 'guestBanner';
+        banner.className = 'guest-banner';
+        banner.innerHTML = `
+            <p>👋 You're browsing as <strong>${guestName}</strong>.
+            <a href="/login.html">Login</a> or <a href="/register.html">Register</a> to post and interact!</p>
+        `;
+        // Insert BEFORE the main container, not inside it
+        mainContainer.parentNode.insertBefore(banner, mainContainer);
     }
 }
 
@@ -68,10 +150,18 @@ function setupNavigation() {
     const viewProfile = document.getElementById('viewProfile');
 
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
+        if (isGuest) {
+            // For guests, clicking "Login" redirects to login page
+            logoutBtn.addEventListener('click', () => {
+                window.location.href = '/login.html';
+            });
+        } else {
+            // For authenticated users, logout normally
+            logoutBtn.addEventListener('click', handleLogout);
+        }
     }
 
-    if (viewProfile) {
+    if (viewProfile && !isGuest) {
         viewProfile.addEventListener('click', (e) => {
             e.preventDefault();
             window.location.href = `/profile.html?username=${currentUser.username}`;

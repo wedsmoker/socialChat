@@ -13,7 +13,10 @@ const profilesRoutes = require('./routes/profiles');
 const chatroomsRoutes = require('./routes/chatrooms');
 const moderationRoutes = require('./routes/moderation');
 const tagsRoutes = require('./routes/tags');
+const friendsRoutes = require('./routes/friends');
+const commentsRoutes = require('./routes/comments');
 const chatHandler = require('./socketHandlers/chat');
+const { allowGuestSocket } = require('./middleware/auth');
 
 const app = express();
 const server = http.createServer(app);
@@ -45,6 +48,9 @@ io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 
+// Allow guest access for Socket.io
+io.use(allowGuestSocket);
+
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -55,6 +61,8 @@ app.use('/api/profiles', profilesRoutes);
 app.use('/api/chatrooms', chatroomsRoutes);
 app.use('/api/moderation', moderationRoutes);
 app.use('/api/tags', tagsRoutes);
+app.use('/api/friends', friendsRoutes);
+app.use('/api/comments', commentsRoutes);
 
 // Socket.io connection handler
 chatHandler(io);

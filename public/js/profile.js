@@ -86,6 +86,9 @@ function displayProfile(user, posts) {
     // Show edit button if own profile
     if (currentUser && currentUser.id === user.id) {
         document.getElementById('editProfileBtn').style.display = 'block';
+    } else {
+        // Show friend actions for other users' profiles
+        loadFriendshipStatus(user.id);
     }
 
     // Display posts
@@ -328,4 +331,139 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Friendship functionality
+async function loadFriendshipStatus(userId) {
+    const friendshipActions = document.getElementById('friendshipActions');
+
+    try {
+        const response = await fetch(`/api/friends/status/${userId}`);
+        const data = await response.json();
+
+        if (data.status === 'none') {
+            friendshipActions.innerHTML = `
+                <button class="btn-primary" onclick="sendFriendRequest(${userId})">
+                    Send Friend Request
+                </button>
+            `;
+        } else if (data.status === 'pending') {
+            if (data.isRequester) {
+                friendshipActions.innerHTML = `
+                    <button class="btn-secondary" disabled>Friend Request Sent</button>
+                    <button class="btn-danger" onclick="cancelFriendRequest(${data.friendshipId})">Cancel Request</button>
+                `;
+            } else {
+                friendshipActions.innerHTML = `
+                    <button class="btn-primary" onclick="acceptFriendRequest(${data.friendshipId})">Accept Friend Request</button>
+                    <button class="btn-danger" onclick="rejectFriendRequest(${data.friendshipId})">Reject</button>
+                `;
+            }
+        } else if (data.status === 'accepted') {
+            friendshipActions.innerHTML = `
+                <button class="btn-success" disabled>Friends ✓</button>
+                <button class="btn-danger" onclick="unfriend(${data.friendshipId})">Unfriend</button>
+            `;
+        }
+    } catch (error) {
+        console.error('Load friendship status error:', error);
+    }
+}
+
+async function sendFriendRequest(userId) {
+    try {
+        const response = await fetch('/api/friends/request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ receiver_id: userId })
+        });
+
+        if (response.ok) {
+            await loadFriendshipStatus(userId);
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to send friend request');
+        }
+    } catch (error) {
+        console.error('Send friend request error:', error);
+        alert('Failed to send friend request');
+    }
+}
+
+async function acceptFriendRequest(friendshipId) {
+    try {
+        const response = await fetch(`/api/friends/${friendshipId}/accept`, {
+            method: 'PUT'
+        });
+
+        if (response.ok) {
+            await loadFriendshipStatus(profileUser.id);
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to accept friend request');
+        }
+    } catch (error) {
+        console.error('Accept friend request error:', error);
+        alert('Failed to accept friend request');
+    }
+}
+
+async function rejectFriendRequest(friendshipId) {
+    try {
+        const response = await fetch(`/api/friends/${friendshipId}/reject`, {
+            method: 'PUT'
+        });
+
+        if (response.ok) {
+            await loadFriendshipStatus(profileUser.id);
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to reject friend request');
+        }
+    } catch (error) {
+        console.error('Reject friend request error:', error);
+        alert('Failed to reject friend request');
+    }
+}
+
+async function cancelFriendRequest(friendshipId) {
+    if (!confirm('Are you sure you want to cancel this friend request?')) return;
+
+    try {
+        const response = await fetch(`/api/friends/${friendshipId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            await loadFriendshipStatus(profileUser.id);
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to cancel friend request');
+        }
+    } catch (error) {
+        console.error('Cancel friend request error:', error);
+        alert('Failed to cancel friend request');
+    }
+}
+
+async function unfriend(friendshipId) {
+    if (!confirm('Are you sure you want to unfriend this user?')) return;
+
+    try {
+        const response = await fetch(`/api/friends/${friendshipId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            await loadFriendshipStatus(profileUser.id);
+        } else {
+            const data = await response.json();
+            alert(data.error || 'Failed to unfriend');
+        }
+    } catch (error) {
+        console.error('Unfriend error:', error);
+        alert('Failed to unfriend');
+    }
 }

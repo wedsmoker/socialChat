@@ -163,7 +163,16 @@ function sendMessage() {
 
 function displayMessage(message, scrollDown = true) {
     const chatMessages = document.getElementById('chatMessages');
-    const isOwn = currentUser && message.user_id === currentUser.id;
+
+    // Check if message is owned by current user or guest
+    let isOwn = false;
+    if (currentUser && message.user_id === currentUser.id) {
+        isOwn = true;
+    } else if (isGuest && message.is_guest && message.guest_id === guestId) {
+        isOwn = true;
+    } else if (isGuest && message.guest_name === guestName) {
+        isOwn = true;
+    }
 
     const avatarUrl = message.profile_picture || `https://ui-avatars.com/api/?name=${message.username}&background=random`;
 
@@ -175,24 +184,31 @@ function displayMessage(message, scrollDown = true) {
         <img src="${avatarUrl}" alt="${message.username}" class="message-avatar">
         <div class="message-content">
             <div class="message-header">
-                <a href="/profile.html?username=${message.username}" class="message-username">${message.username}</a>
+                ${message.is_guest ?
+                    `<span class="message-username">${message.username}</span>` :
+                    `<a href="/profile.html?username=${message.username}" class="message-username">${message.username}</a>`
+                }
                 <span class="message-time">${formatDate(message.created_at)}</span>
             </div>
             <div class="message-text">${escapeHtml(message.message)}</div>
-            <div class="message-actions">
-                ${isOwn ? `<button class="btn-delete-message" data-message-id="${message.id}">Delete</button>` : `<button class="btn-report-message" data-message-id="${message.id}" data-user-id="${message.user_id}">🚩 Report</button>`}
-            </div>
+            ${!message.is_guest ? `
+                <div class="message-actions">
+                    ${isOwn ? `<button class="btn-delete-message" data-message-id="${message.id}">Delete</button>` : `<button class="btn-report-message" data-message-id="${message.id}" data-user-id="${message.user_id}">🚩 Report</button>`}
+                </div>
+            ` : ''}
         </div>
     `;
 
     chatMessages.appendChild(messageDiv);
 
-    // Attach delete listener
-    if (isOwn) {
+    // Attach delete listener (only for authenticated users)
+    if (isOwn && !message.is_guest) {
         const deleteBtn = messageDiv.querySelector('.btn-delete-message');
-        deleteBtn.addEventListener('click', () => deleteMessage(message.id));
-    } else {
-        // Attach report listener
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => deleteMessage(message.id));
+        }
+    } else if (!isOwn && !message.is_guest) {
+        // Attach report listener (only for authenticated user messages)
         const reportBtn = messageDiv.querySelector('.btn-report-message');
         if (reportBtn) {
             reportBtn.addEventListener('click', () => reportMessage(message.id, message.user_id));
@@ -278,6 +294,12 @@ function scrollToBottom() {
 }
 
 async function createChatroom() {
+    // Guests can't create chatrooms
+    if (typeof isGuest !== 'undefined' && isGuest) {
+        alert('Please login or register to create chatrooms');
+        return;
+    }
+
     const name = prompt('Enter chatroom name:');
     if (!name) return;
 

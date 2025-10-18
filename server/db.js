@@ -1,11 +1,23 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-// PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// PostgreSQL connection pool - supports both connection string and individual params
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    }
+  : {
+      host: process.env.PGHOST || 'localhost',
+      port: parseInt(process.env.PGPORT || '5432', 10),
+      database: process.env.PGDATABASE || 'socialchat',
+      user: process.env.PGUSER || 'postgres',
+      password: String(process.env.PGPASSWORD || ''),
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    };
+
+const pool = new Pool(poolConfig);
 
 // Test database connection
 pool.on('connect', () => {
@@ -57,6 +69,14 @@ const initDatabase = async () => {
       const phase0Migration = fs.readFileSync(phase0MigrationPath, 'utf8');
       await pool.query(phase0Migration);
       console.log('Phase 0 features migrated successfully (visibility, audio, tags)');
+    }
+
+    // Run Phase 1 migration (friends, comments, collections, guest support)
+    const phase1MigrationPath = path.join(__dirname, 'migrations', 'phase1_migration.sql');
+    if (fs.existsSync(phase1MigrationPath)) {
+      const phase1Migration = fs.readFileSync(phase1MigrationPath, 'utf8');
+      await pool.query(phase1Migration);
+      console.log('Phase 1 features migrated successfully (friends, comments, collections, guests)');
     }
   } catch (error) {
     console.error('Error initializing database:', error);

@@ -729,6 +729,41 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     font-size: 0.9rem;
 }
 
+.friendship-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.btn-danger {
+    background: var(--error);
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
 .profile-posts h3 {
     margin-bottom: 1rem;
 }
@@ -1026,3 +1061,248 @@ button, .btn-primary, .btn-secondary, .btn-icon {
         display: none;
     }
 }
+
+/* Guest Banner */
+.guest-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    margin: 0 auto 1.5rem;
+    max-width: 1200px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.guest-banner p {
+    margin: 0;
+    color: white;
+    font-size: 1rem;
+}
+
+.guest-banner strong {
+    font-weight: 700;
+}
+
+.guest-banner a {
+    color: #fff;
+    text-decoration: underline;
+    font-weight: 600;
+    margin: 0 0.3rem;
+}
+
+.guest-banner a:hover {
+    text-decoration: none;
+    opacity: 0.9;
+}
+
+/* Friends Page */
+.friends-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.friends-container h2 {
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.friends-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.8rem 1.5rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+    margin-bottom: -2px;
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.badge {
+    background: var(--accent);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.friends-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.friend-card {
+    background: var(--secondary-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.friend-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+}
+
+.friend-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent);
+}
+
+.friend-info {
+    flex: 1;
+}
+
+.friend-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.friend-bio {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.friend-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-add-friend, .btn-accept, .btn-reject, .btn-unfriend, .btn-cancel {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-add-friend, .btn-accept {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-add-friend:hover, .btn-accept:hover {
+    background: var(--accent-hover);
+    transform: scale(1.05);
+}
+
+.btn-reject, .btn-unfriend, .btn-cancel {
+    background: var(--secondary-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.btn-reject:hover, .btn-unfriend:hover, .btn-cancel:hover {
+    background: var(--error);
+    border-color: var(--error);
+    color: white;
+}
+
+.search-section {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.8rem;
+    background: var(--secondary-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.hint {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.no-results {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .friend-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .friend-actions {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .search-section {
+        flex-direction: column;
+    }
+}
+
+/* Comments */
+.comments-section{background:var(--primary-bg);padding:1rem;margin-top:1rem;border-top:1px solid var(--border)}
+.comment-input-section{display:flex;gap:0.5rem;margin-bottom:1rem}
+.comment-input{flex:1;padding:0.6rem;background:var(--secondary-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);min-height:60px;resize:vertical}
+.btn-submit-comment,.btn-comment{background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:0.5rem 1rem;border-radius:20px;cursor:pointer}
+.btn-comment:hover,.btn-submit-comment:hover{background:var(--accent);border-color:var(--accent)}
+.comments-list{display:flex;flex-direction:column;gap:1rem}
+.comment{display:flex;gap:0.8rem}
+.comment-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover}
+.comment-content{flex:1}
+.comment-header{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem}
+.comment-username{font-weight:600;font-size:0.9rem}
+.comment-time{font-size:0.75rem;color:var(--text-secondary)}
+.btn-delete-comment{background:transparent;border:none;color:var(--text-secondary);font-size:0.75rem;cursor:pointer;margin-left:auto}
+.btn-delete-comment:hover{color:var(--error)}
+.comment-text{background:var(--secondary-bg);padding:0.6rem;border-radius:8px;word-wrap:break-word}
+.no-comments{text-align:center;padding:1rem;color:var(--text-secondary)}

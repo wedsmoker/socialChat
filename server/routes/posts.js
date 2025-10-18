@@ -26,7 +26,18 @@ router.get('/', async (req, res) => {
        LEFT JOIN tags t ON pt.tag_id = t.id
        WHERE p.deleted_by_mod = FALSE
          AND u.is_banned = FALSE
-         AND (p.visibility = 'public' OR p.user_id = $3)
+         AND (
+           p.visibility = 'public'
+           OR p.user_id = $3
+           OR (
+             p.visibility = 'friends' AND EXISTS (
+               SELECT 1 FROM friendships f
+               WHERE f.status = 'accepted'
+                 AND ((f.requester_id = $3 AND f.receiver_id = p.user_id)
+                      OR (f.receiver_id = $3 AND f.requester_id = p.user_id))
+             )
+           )
+         )
        GROUP BY p.id, u.id, u.username, u.profile_picture
        ORDER BY p.created_at DESC
        LIMIT $1 OFFSET $2`,

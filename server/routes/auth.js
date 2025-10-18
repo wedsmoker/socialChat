@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const { query } = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, allowGuest } = require('../middleware/auth');
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
@@ -50,9 +50,46 @@ router.post('/register', async (req, res) => {
 
     const user = result.rows[0];
 
-    // Set session
+    // Clear guest session and set authenticated session
+    delete req.session.isGuest;
+    delete req.session.guestId;
+    delete req.session.guestName;
+
     req.session.userId = user.id;
     req.session.username = user.username;
+
+    // Auto-send friend request from 'admin' account (like Tom on MySpace!)
+    try {
+      const adminResult = await query(
+        'SELECT id FROM users WHERE username = $1',
+        ['admin']
+      );
+
+      if (adminResult.rows.length > 0) {
+        const adminId = adminResult.rows[0].id;
+
+        // Don't send friend request if the user IS admin
+        if (user.id !== adminId) {
+          // Order IDs properly (lower ID first)
+          const [requesterId, receiverId] = user.id < adminId
+            ? [user.id, adminId]
+            : [adminId, user.id];
+
+          // Send friend request from admin to new user
+          await query(
+            `INSERT INTO friendships (requester_id, receiver_id, status)
+             VALUES ($1, $2, 'pending')
+             ON CONFLICT (requester_id, receiver_id) DO NOTHING`,
+            [requesterId, receiverId]
+          );
+
+          console.log(`Admin automatically sent friend request to new user: ${user.username}`);
+        }
+      }
+    } catch (adminError) {
+      // Don't fail registration if admin friend request fails
+      console.error('Failed to send admin friend request:', adminError);
+    }
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -96,7 +133,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // Set session
+    // Clear guest session and set authenticated session
+    delete req.session.isGuest;
+    delete req.session.guestId;
+    delete req.session.guestName;
+
     req.session.userId = user.id;
     req.session.username = user.username;
 
@@ -146,10 +187,20 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
-// Get session info (including admin status)
-router.get('/session', async (req, res) => {
+// Get session info (including admin status and guest status)
+router.get('/session', allowGuest, async (req, res) => {
+  // Check if user is a guest
+  if (req.session.isGuest) {
+    return res.json({
+      isAuthenticated: false,
+      isGuest: true,
+      guestName: req.session.guestName,
+      guestId: req.session.guestId
+    });
+  }
+
   if (!req.session.userId) {
-    return res.json({ isAuthenticated: false });
+    return res.json({ isAuthenticated: false, isGuest: false });
   }
 
   try {
@@ -159,13 +210,14 @@ router.get('/session', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.json({ isAuthenticated: false });
+      return res.json({ isAuthenticated: false, isGuest: false });
     }
 
     const user = result.rows[0];
 
     res.json({
       isAuthenticated: true,
+      isGuest: false,
       user: {
         id: user.id,
         username: user.username,
