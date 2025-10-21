@@ -2,3 +2,6 @@ node_modules/
 .env
 *.log
 .DS_Store
+nul
+1todo.txt
+public/color-test.html

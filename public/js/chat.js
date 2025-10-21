@@ -190,7 +190,7 @@ function displayMessage(message, scrollDown = true) {
                 }
                 <span class="message-time">${formatDate(message.created_at)}</span>
             </div>
-            <div class="message-text">${embedYouTubeVideos(escapeHtml(message.message))}</div>
+            <div class="message-text">${embedYouTubeVideos(linkifyUrls(escapeHtml(message.message)))}</div>
             ${!message.is_guest ? `
                 <div class="message-actions">
                     ${isOwn ? `<button class="btn-delete-message" data-message-id="${message.id}">Delete</button>` : `<button class="btn-report-message" data-message-id="${message.id}" data-user-id="${message.user_id}">🚩 Report</button>`}
@@ -357,6 +357,15 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function linkifyUrls(text) {
+    // Match URLs but exclude those that will be YouTube embeds
+    const urlRegex = /(?<!href="|src=")(https?:\/\/(?:www\.)?(?!(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/))[^\s<]+)/gi;
+
+    return text.replace(urlRegex, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="post-link">${url}</a>`;
+    });
 }
 
 function embedYouTubeVideos(text) {

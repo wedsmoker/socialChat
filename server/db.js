@@ -86,6 +86,14 @@ const initDatabase = async () => {
       await pool.query(friendOrderMigration);
       console.log('Friend display order migrated successfully (MySpace-style top friends)');
     }
+
+    // Run bot features migration
+    const botMigrationPath = path.join(__dirname, 'migrations', 'add_bot_features.sql');
+    if (fs.existsSync(botMigrationPath)) {
+      const botMigration = fs.readFileSync(botMigrationPath, 'utf8');
+      await pool.query(botMigration);
+      console.log('Bot features migrated successfully');
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;

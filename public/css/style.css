@@ -1161,6 +1161,19 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     margin: 0 2px;
 }
 
+/* Post Links */
+.post-link {
+    color: #4A9EFF;
+    text-decoration: none;
+    word-break: break-all;
+    transition: color 0.2s ease;
+}
+
+.post-link:hover {
+    color: #6BB3FF;
+    text-decoration: underline;
+}
+
 /* Active Filter */
 .active-filter {
     background: var(--card-bg);

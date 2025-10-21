@@ -17,6 +17,7 @@ const friendsRoutes = require('./routes/friends');
 const commentsRoutes = require('./routes/comments');
 const chatHandler = require('./socketHandlers/chat');
 const { allowGuestSocket } = require('./middleware/auth');
+const botService = require('./services/botService');
 
 const app = express();
 const server = http.createServer(app);
@@ -77,6 +78,9 @@ const startServer = async () => {
   try {
     await initDatabase();
     console.log('Database initialized');
+
+    // Start bot service
+    await botService.start();
 
     server.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);

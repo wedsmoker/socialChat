@@ -282,10 +282,11 @@ function renderPost(post) {
         visibilityHtml = '<span class="visibility-indicator" title="Private">🔒 Private</span>';
     }
 
-    // Linkify hashtags and embed YouTube videos in content
+    // Linkify hashtags, URLs, and embed YouTube videos in content
     const escapedContent = escapeHtml(post.content);
     const contentWithHashtags = linkifyHashtags(escapedContent);
-    const contentWithLinks = embedYouTubeVideos(contentWithHashtags);
+    const contentWithUrls = linkifyUrls(contentWithHashtags);
+    const contentWithLinks = embedYouTubeVideos(contentWithUrls);
 
     // Action menu (only for authenticated users)
     let actionsMenuHtml = '';
@@ -344,6 +345,15 @@ function renderPost(post) {
 
 function linkifyHashtags(text) {
     return text.replace(/#(\w+)/g, '<span class="hashtag" onclick="filterByTag(\'$1\')">#$1</span>');
+}
+
+function linkifyUrls(text) {
+    // Match URLs but exclude those that will be YouTube embeds
+    const urlRegex = /(?<!href="|src=")(https?:\/\/(?:www\.)?(?!(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/))[^\s<]+)/gi;
+
+    return text.replace(urlRegex, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="post-link">${url}</a>`;
+    });
 }
 
 function embedYouTubeVideos(text) {

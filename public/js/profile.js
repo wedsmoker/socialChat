@@ -148,8 +148,11 @@ function renderPost(post) {
         visibilityHtml = '<span class="visibility-indicator" title="Private">🔒 Private</span>';
     }
 
-    // Linkify hashtags in content
-    const contentWithLinks = linkifyHashtags(escapeHtml(post.content));
+    // Linkify hashtags, URLs, and embed YouTube videos in content
+    const escapedContent = escapeHtml(post.content);
+    const contentWithHashtags = linkifyHashtags(escapedContent);
+    const contentWithUrls = linkifyUrls(contentWithHashtags);
+    const contentWithLinks = embedYouTubeVideos(contentWithUrls);
 
     return `
         <div class="post" data-post-id="${post.id}">
@@ -171,6 +174,33 @@ function renderPost(post) {
 
 function linkifyHashtags(text) {
     return text.replace(/#(\w+)/g, '<span class="hashtag">#$1</span>');
+}
+
+function linkifyUrls(text) {
+    // Match URLs but exclude those that will be YouTube embeds
+    const urlRegex = /(?<!href="|src=")(https?:\/\/(?:www\.)?(?!(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/))[^\s<]+)/gi;
+
+    return text.replace(urlRegex, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="post-link">${url}</a>`;
+    });
+}
+
+function embedYouTubeVideos(text) {
+    // Match YouTube URLs: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[?&][^\s]*)?/g;
+
+    return text.replace(youtubeRegex, (match, videoId) => {
+        return `<div class="youtube-embed">
+            <iframe
+                width="100%"
+                height="315"
+                src="https://www.youtube.com/embed/${videoId}"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+            </iframe>
+        </div>`;
+    });
 }
 
 function formatDuration(seconds) {
