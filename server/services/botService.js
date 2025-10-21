@@ -12,6 +12,7 @@ class BotService {
     this.genAI = null;
     this.botUsers = [];
     this.currentBotIndex = 0; // Track which bot posts next (round-robin)
+    this.lastRoastedUsername = null; // Track last roasted user to prevent spam
     this.scheduledTimeouts = [];
 
     if (this.enabled && this.apiKey) {
@@ -144,11 +145,11 @@ class BotService {
         username: row.username
       }));
 
-      // Check for prompt injection attempts
+      // Check for prompt injection attempts (skip if we already roasted this user)
       let injectionAttempt = null;
       for (const post of posts) {
         const detection = this.detectPromptInjection(post.content, post.username);
-        if (detection.detected) {
+        if (detection.detected && detection.username !== this.lastRoastedUsername) {
           injectionAttempt = detection;
           break; // Found one, call it out!
         }
@@ -300,6 +301,12 @@ Just output the post text, nothing else.`;
       );
 
       console.log(`✓ Bot post created by ${botUser.username}: "${postContent.substring(0, 50)}..."`);
+
+      // If we just roasted someone, remember them to prevent spam
+      if (context.injectionAttempt) {
+        this.lastRoastedUsername = context.injectionAttempt.username;
+        console.log(`🛡️ Roasted ${this.lastRoastedUsername} - won't roast them again until someone else tries`);
+      }
 
     } catch (error) {
       console.error('Error creating bot post:', error);
