@@ -717,6 +717,40 @@ Just output the post text, nothing else.`;
 
       const newPost = result.rows[0];
 
+      // Parse and insert hashtags
+      const hashtagRegex = /#(\w+)/g;
+      const matches = postContent.match(hashtagRegex);
+      const hashtags = matches ? [...new Set(matches.map(tag => tag.substring(1).toLowerCase()))] : [];
+
+      if (hashtags.length > 0) {
+        for (const tagName of hashtags) {
+          // Insert or get tag
+          const tagResult = await query(
+            `INSERT INTO tags (name, use_count)
+             VALUES ($1, 1)
+             ON CONFLICT (name) DO UPDATE SET use_count = tags.use_count + 1
+             RETURNING id`,
+            [tagName]
+          );
+
+          // Link tag to post
+          await query(
+            `INSERT INTO post_tags (post_id, tag_id)
+             VALUES ($1, $2)
+             ON CONFLICT (post_id, tag_id) DO NOTHING`,
+            [newPost.id, tagResult.rows[0].id]
+          );
+        }
+      }
+
+      // Get tags for broadcast
+      const tagsResult = await query(
+        `SELECT t.id, t.name FROM tags t
+         INNER JOIN post_tags pt ON t.id = pt.tag_id
+         WHERE pt.post_id = $1`,
+        [newPost.id]
+      );
+
       // Get bot user info for broadcast
       const botUserData = await query(
         'SELECT username, profile_picture, bio FROM users WHERE id = $1',
@@ -731,7 +765,7 @@ Just output the post text, nothing else.`;
           user_profile_picture: botUserData.rows[0].profile_picture,
           user_bio: botUserData.rows[0].bio,
           reaction_count: 0,
-          tags: [] // Bots don't use hashtags currently
+          tags: tagsResult.rows
         });
         console.log(`📡 Broadcast new_post event for bot ${botUserData.rows[0].username}`);
       } else {

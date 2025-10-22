@@ -110,6 +110,14 @@ const initDatabase = async () => {
       await pool.query(botTopicsMigration);
       console.log('Bot topics tracking migrated successfully');
     }
+
+    // Backfill hashtags for existing bot posts
+    const backfillHashtagsPath = path.join(__dirname, 'migrations', 'backfill_bot_hashtags.sql');
+    if (fs.existsSync(backfillHashtagsPath)) {
+      const backfillHashtags = fs.readFileSync(backfillHashtagsPath, 'utf8');
+      await pool.query(backfillHashtags);
+      console.log('Bot hashtags backfilled successfully');
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
