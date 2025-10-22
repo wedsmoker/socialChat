@@ -88,7 +88,11 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // API Routes
 app.use('/api/auth', authLimiter, authRoutes);
+
+// Set Socket.io for posts route (for live feed)
+postsRoutes.setSocketIO(io);
 app.use('/api/posts', postsRoutes); // Post creation limiter applied in routes file
+
 app.use('/api/profiles', profilesRoutes);
 app.use('/api/chatrooms', chatroomsRoutes);
 app.use('/api/moderation', moderationRoutes);
@@ -109,6 +113,9 @@ const startServer = async () => {
   try {
     await initDatabase();
     console.log('Database initialized');
+
+    // Pass Socket.io instance to bot service for live updates
+    botService.setSocketIO(io);
 
     // Start bot service
     await botService.start();

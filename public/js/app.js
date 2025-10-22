@@ -102,14 +102,25 @@ async function checkAuth() {
 
     } catch (error) {
         console.error('Auth check error:', error);
-        // On error, still allow guest mode by reloading
-        if (!sessionStorage.getItem('retried')) {
-            sessionStorage.setItem('retried', 'true');
-            window.location.reload();
-        } else {
-            sessionStorage.removeItem('retried');
-            window.location.href = '/login.html';
+        // On auth error, default to guest mode instead of forcing login
+        // This prevents lockouts from rate limiting or temporary network issues
+        isGuest = true;
+        guestName = 'Guest';
+        guestId = 'temp-' + Date.now();
+
+        console.log('Auth check failed, defaulting to guest mode');
+
+        // Update UI for guest fallback
+        if (document.getElementById('navUsername')) {
+            document.getElementById('navUsername').textContent = guestName;
         }
+
+        const createPostSection = document.querySelector('.create-post-section');
+        if (createPostSection) {
+            createPostSection.style.display = 'none';
+        }
+
+        showGuestPrompt();
     }
 }
 

@@ -116,7 +116,7 @@ router.post('/login', async (req, res) => {
   try {
     // Find user
     const result = await query(
-      'SELECT id, username, password_hash, bio, profile_picture, links FROM users WHERE username = $1',
+      'SELECT id, username, password_hash, bio, profile_picture, links, is_banned FROM users WHERE username = $1',
       [username]
     );
 
@@ -125,6 +125,11 @@ router.post('/login', async (req, res) => {
     }
 
     const user = result.rows[0];
+
+    // Check if user is banned
+    if (user.is_banned) {
+      return res.status(403).json({ error: 'Account has been banned. Contact support for details.' });
+    }
 
     // Verify password
     const isValid = await bcrypt.compare(password, user.password_hash);

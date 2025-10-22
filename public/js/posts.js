@@ -4,14 +4,71 @@ let currentMediaData = null;
 let currentMediaType = null;
 let currentAudioDuration = null;
 let currentAudioFormat = null;
+let postsSocket = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('postsContainer')) {
         loadPosts();
         setupPostCreation();
         loadTrendingTags();
+        setupLiveFeed();
     }
 });
+
+// Setup Socket.io for live feed updates
+function setupLiveFeed() {
+    // Initialize Socket.io connection
+    if (typeof io !== 'undefined') {
+        // Create socket connection for live feed
+        postsSocket = io();
+        console.log('Socket.io connected for live feed');
+
+        // Listen for new posts
+        postsSocket.on('new_post', (post) => {
+            console.log('New post received via Socket.io:', post);
+            prependPost(post);
+        });
+
+        postsSocket.on('connect', () => {
+            console.log('Live feed socket connected');
+        });
+
+        postsSocket.on('connect_error', (error) => {
+            console.error('Live feed socket connection error:', error);
+        });
+    } else {
+        console.warn('Socket.io not available - live feed disabled');
+    }
+}
+
+// Prepend new post to the feed (live update)
+function prependPost(post) {
+    const postsContainer = document.getElementById('postsContainer');
+    if (!postsContainer) return;
+
+    // Check if "no posts" message exists and remove it
+    const noPosts = postsContainer.querySelector('.no-posts');
+    if (noPosts) {
+        noPosts.remove();
+    }
+
+    // Create post HTML and insert at the top
+    const postHTML = renderPost(post);
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = postHTML;
+    const postElement = tempDiv.firstElementChild;
+
+    postsContainer.insertBefore(postElement, postsContainer.firstChild);
+
+    // Attach event listeners to the new post
+    attachPostEventListeners();
+
+    // Optional: Add a subtle highlight animation
+    postElement.style.animation = 'slideIn 0.3s ease-out';
+    setTimeout(() => {
+        postElement.style.animation = '';
+    }, 300);
+}
 
 function setupPostCreation() {
     const createPostBtn = document.getElementById('createPostBtn');
@@ -216,7 +273,7 @@ async function loadPosts(tagFilter = null) {
     const postsContainer = document.getElementById('postsContainer');
 
     try {
-        let url = '/api/posts?limit=50';
+        let url = '/api/posts?limit=30'; // Reduced to 30 for better performance with live feed
         if (tagFilter) {
             url = `/api/tags/${tagFilter}/posts`;
         }

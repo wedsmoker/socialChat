@@ -5,6 +5,12 @@ const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
 
+// Will be set by index.js
+let io = null;
+router.setSocketIO = (socketIO) => {
+  io = socketIO;
+};
+
 // Rate limiting for post creation
 const postCreationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
@@ -168,15 +174,22 @@ router.post('/', postCreationLimiter, requireAuth, async (req, res) => {
       [post.id]
     );
 
+    const postData = {
+      ...post,
+      username: userResult.rows[0].username,
+      user_profile_picture: userResult.rows[0].profile_picture,
+      reaction_count: 0,
+      tags: tagsResult.rows
+    };
+
+    // Broadcast new post to all connected clients
+    if (io && postVisibility === 'public') {
+      io.emit('new_post', postData);
+    }
+
     res.status(201).json({
       message: 'Post created successfully',
-      post: {
-        ...post,
-        username: userResult.rows[0].username,
-        user_profile_picture: userResult.rows[0].profile_picture,
-        reaction_count: 0,
-        tags: tagsResult.rows
-      }
+      post: postData
     });
   } catch (error) {
     console.error('Create post error:', error);

@@ -16,6 +16,7 @@ class BotService {
     this.scheduledTimeouts = [];
     this.lastPostTime = 0; // Track last post time for cooldown
     this.minPostCooldown = 5 * 60 * 1000; // 5 minute minimum between ANY posts (prevents API quota drain)
+    this.io = null; // Socket.io instance for live updates
 
     if (this.enabled && this.apiKey) {
       this.genAI = new GoogleGenerativeAI(this.apiKey);
@@ -706,12 +707,36 @@ Just output the post text, nothing else.`;
         return;
       }
 
-      // Insert post
-      await query(
+      // Insert post and get full post data
+      const result = await query(
         `INSERT INTO posts (user_id, content, visibility)
-         VALUES ($1, $2, 'public')`,
+         VALUES ($1, $2, 'public')
+         RETURNING id, user_id, content, visibility, created_at`,
         [botUser.id, postContent]
       );
+
+      const newPost = result.rows[0];
+
+      // Get bot user info for broadcast
+      const botUserData = await query(
+        'SELECT username, profile_picture, bio FROM users WHERE id = $1',
+        [botUser.id]
+      );
+
+      // Broadcast new post to all connected clients via Socket.io
+      if (this.io) {
+        this.io.emit('new_post', {
+          ...newPost,
+          username: botUserData.rows[0].username,
+          user_profile_picture: botUserData.rows[0].profile_picture,
+          user_bio: botUserData.rows[0].bio,
+          reaction_count: 0,
+          tags: [] // Bots don't use hashtags currently
+        });
+        console.log(`📡 Broadcast new_post event for bot ${botUserData.rows[0].username}`);
+      } else {
+        console.warn('⚠️ Socket.io not available, post not broadcast');
+      }
 
       // Save topic for future exclusion (unless it's a roast post)
       if (!context.injectionAttempt) {
@@ -780,6 +805,11 @@ Just output the post text, nothing else.`;
 
     const minutes = Math.round(randomInterval / 60000);
     console.log(`✓ Next bot post scheduled in ~${minutes} minutes`);
+  }
+
+  // Set Socket.io instance for live updates
+  setSocketIO(io) {
+    this.io = io;
   }
 
   // Start the bot service
