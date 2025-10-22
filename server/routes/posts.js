@@ -232,7 +232,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Check if post belongs to user
+    // Check if post exists
     const checkResult = await query(
       'SELECT user_id FROM posts WHERE id = $1',
       [id]
@@ -242,7 +242,17 @@ router.delete('/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Post not found' });
     }
 
-    if (checkResult.rows[0].user_id !== req.session.userId) {
+    // Check if user is admin
+    const userResult = await query(
+      'SELECT is_admin FROM users WHERE id = $1',
+      [req.session.userId]
+    );
+
+    const isAdmin = userResult.rows[0]?.is_admin;
+    const isOwner = checkResult.rows[0].user_id === req.session.userId;
+
+    // Allow deletion if admin OR owner
+    if (!isAdmin && !isOwner) {
       return res.status(403).json({ error: 'Unauthorized to delete this post' });
     }
 

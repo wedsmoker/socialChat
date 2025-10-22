@@ -242,6 +242,7 @@ async function loadPosts(tagFilter = null) {
 
 function renderPost(post) {
     const isOwner = currentUser && post.user_id === currentUser.id;
+    const isAdmin = currentUser && currentUser.is_admin;
     const isGuestUser = typeof isGuest !== 'undefined' && isGuest;
     const avatarUrl = post.user_profile_picture || `https://ui-avatars.com/api/?name=${post.username}&background=random`;
 
@@ -282,11 +283,11 @@ function renderPost(post) {
         visibilityHtml = '<span class="visibility-indicator" title="Private">🔒 Private</span>';
     }
 
-    // Linkify hashtags, URLs, and embed YouTube videos in content
+    // Linkify hashtags, embed YouTube videos, then linkify remaining URLs
     const escapedContent = escapeHtml(post.content);
     const contentWithHashtags = linkifyHashtags(escapedContent);
-    const contentWithUrls = linkifyUrls(contentWithHashtags);
-    const contentWithLinks = embedYouTubeVideos(contentWithUrls);
+    const contentWithYouTube = embedYouTubeVideos(contentWithHashtags);
+    const contentWithLinks = linkifyUrls(contentWithYouTube);
 
     // Action menu (only for authenticated users)
     let actionsMenuHtml = '';
@@ -296,6 +297,14 @@ function renderPost(post) {
                 <div class="post-actions-menu">
                     <button class="btn-edit-post" data-post-id="${post.id}">Edit</button>
                     <button class="btn-delete-post" data-post-id="${post.id}">Delete</button>
+                </div>
+            `;
+        } else if (isAdmin) {
+            // Admins can delete any post
+            actionsMenuHtml = `
+                <div class="post-actions-menu">
+                    <button class="btn-delete-post" data-post-id="${post.id}">🛡️ Delete</button>
+                    <button class="btn-report-post" data-post-id="${post.id}" data-user-id="${post.user_id}">🚩 Report</button>
                 </div>
             `;
         } else {

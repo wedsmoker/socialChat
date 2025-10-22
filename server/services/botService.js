@@ -1,6 +1,8 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { query } = require('../db');
 const bcrypt = require('bcrypt');
+const fs = require('fs').promises;
+const path = require('path');
 
 class BotService {
   constructor() {
@@ -11,15 +13,49 @@ class BotService {
     this.contextPostLimit = parseInt(process.env.BOT_CONTEXT_POST_LIMIT || '20'); // Last 20 posts
     this.genAI = null;
     this.botUsers = [];
-    this.currentBotIndex = 0; // Track which bot posts next (round-robin)
+    this.lastBotIndex = -1; // Track last bot to avoid repeats
     this.lastRoastedUsername = null; // Track last roasted user to prevent spam
     this.scheduledTimeouts = [];
+    this.stateFilePath = path.join(__dirname, '../data/bot-state.json');
 
     if (this.enabled && this.apiKey) {
       this.genAI = new GoogleGenerativeAI(this.apiKey);
       console.log('✓ Bot service initialized');
     } else if (this.enabled) {
       console.warn('⚠ Bot service enabled but GEMINI_API_KEY not set');
+    }
+
+    // Load persisted state
+    this.loadState();
+  }
+
+  // Load bot state from file
+  async loadState() {
+    try {
+      const data = await fs.readFile(this.stateFilePath, 'utf8');
+      const state = JSON.parse(data);
+      this.lastRoastedUsername = state.lastRoastedUsername || null;
+      if (this.lastRoastedUsername) {
+        console.log(`✓ Loaded bot state: last roasted ${this.lastRoastedUsername}`);
+      }
+    } catch (error) {
+      // File doesn't exist or invalid JSON - that's fine on first run
+      if (error.code !== 'ENOENT') {
+        console.error('Error loading bot state:', error);
+      }
+    }
+  }
+
+  // Save bot state to file
+  async saveState() {
+    try {
+      const state = {
+        lastRoastedUsername: this.lastRoastedUsername,
+        lastRoastTime: new Date().toISOString()
+      };
+      await fs.writeFile(this.stateFilePath, JSON.stringify(state, null, 2), 'utf8');
+    } catch (error) {
+      console.error('Error saving bot state:', error);
     }
   }
 
@@ -279,11 +315,20 @@ Just output the post text, nothing else.`;
       // Collect context
       const context = await this.collectContext();
 
-      // Get next bot user (round-robin)
-      const botUser = this.botUsers[this.currentBotIndex];
+      // Get random bot user (but not the same as last time)
+      let randomIndex;
+      if (this.botUsers.length > 1) {
+        // Pick random bot excluding the last one
+        do {
+          randomIndex = Math.floor(Math.random() * this.botUsers.length);
+        } while (randomIndex === this.lastBotIndex);
+      } else {
+        // Only one bot, no choice
+        randomIndex = 0;
+      }
 
-      // Move to next bot for next post
-      this.currentBotIndex = (this.currentBotIndex + 1) % this.botUsers.length;
+      const botUser = this.botUsers[randomIndex];
+      this.lastBotIndex = randomIndex; // Remember for next time
 
       // Generate post
       const postContent = await this.generatePost(botUser, context);
@@ -305,6 +350,7 @@ Just output the post text, nothing else.`;
       // If we just roasted someone, remember them to prevent spam
       if (context.injectionAttempt) {
         this.lastRoastedUsername = context.injectionAttempt.username;
+        await this.saveState(); // Persist to file so it survives restarts
         console.log(`🛡️ Roasted ${this.lastRoastedUsername} - won't roast them again until someone else tries`);
       }
 

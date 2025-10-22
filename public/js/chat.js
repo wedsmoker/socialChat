@@ -174,6 +174,7 @@ function displayMessage(message, scrollDown = true) {
         isOwn = true;
     }
 
+    const isAdmin = currentUser && currentUser.is_admin;
     const avatarUrl = message.profile_picture || `https://ui-avatars.com/api/?name=${message.username}&background=random`;
 
     const messageDiv = document.createElement('div');
@@ -190,10 +191,12 @@ function displayMessage(message, scrollDown = true) {
                 }
                 <span class="message-time">${formatDate(message.created_at)}</span>
             </div>
-            <div class="message-text">${embedYouTubeVideos(linkifyUrls(escapeHtml(message.message)))}</div>
+            <div class="message-text">${linkifyUrls(embedYouTubeVideos(escapeHtml(message.message)))}</div>
             ${!message.is_guest ? `
                 <div class="message-actions">
-                    ${isOwn ? `<button class="btn-delete-message" data-message-id="${message.id}">Delete</button>` : `<button class="btn-report-message" data-message-id="${message.id}" data-user-id="${message.user_id}">🚩 Report</button>`}
+                    ${isOwn ? `<button class="btn-delete-message" data-message-id="${message.id}">Delete</button>` :
+                     isAdmin ? `<button class="btn-delete-message" data-message-id="${message.id}">🛡️ Delete</button><button class="btn-report-message" data-message-id="${message.id}" data-user-id="${message.user_id}">🚩 Report</button>` :
+                     `<button class="btn-report-message" data-message-id="${message.id}" data-user-id="${message.user_id}">🚩 Report</button>`}
                 </div>
             ` : ''}
         </div>
@@ -201,14 +204,16 @@ function displayMessage(message, scrollDown = true) {
 
     chatMessages.appendChild(messageDiv);
 
-    // Attach delete listener (only for authenticated users)
-    if (isOwn && !message.is_guest) {
+    // Attach delete listener (for owners or admins)
+    if ((isOwn || isAdmin) && !message.is_guest) {
         const deleteBtn = messageDiv.querySelector('.btn-delete-message');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => deleteMessage(message.id));
         }
-    } else if (!isOwn && !message.is_guest) {
-        // Attach report listener (only for authenticated user messages)
+    }
+
+    // Attach report listener (for non-owners)
+    if (!isOwn && !message.is_guest) {
         const reportBtn = messageDiv.querySelector('.btn-report-message');
         if (reportBtn) {
             reportBtn.addEventListener('click', () => reportMessage(message.id, message.user_id));

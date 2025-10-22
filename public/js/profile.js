@@ -148,11 +148,11 @@ function renderPost(post) {
         visibilityHtml = '<span class="visibility-indicator" title="Private">🔒 Private</span>';
     }
 
-    // Linkify hashtags, URLs, and embed YouTube videos in content
+    // Linkify hashtags, embed YouTube videos, then linkify remaining URLs
     const escapedContent = escapeHtml(post.content);
     const contentWithHashtags = linkifyHashtags(escapedContent);
-    const contentWithUrls = linkifyUrls(contentWithHashtags);
-    const contentWithLinks = embedYouTubeVideos(contentWithUrls);
+    const contentWithYouTube = embedYouTubeVideos(contentWithHashtags);
+    const contentWithLinks = linkifyUrls(contentWithYouTube);
 
     return `
         <div class="post" data-post-id="${post.id}">

@@ -166,7 +166,7 @@ module.exports = (io) => {
       const { messageId, chatroomId } = data;
 
       try {
-        // Check if message exists and user is author
+        // Check if message exists
         const checkResult = await query(
           'SELECT user_id FROM chat_messages WHERE id = $1 AND chatroom_id = $2',
           [messageId, chatroomId]
@@ -177,7 +177,20 @@ module.exports = (io) => {
           return;
         }
 
-        if (checkResult.rows[0].user_id !== userId) {
+        // Check if user is admin
+        let isAdmin = false;
+        if (userId) {
+          const userResult = await query(
+            'SELECT is_admin FROM users WHERE id = $1',
+            [userId]
+          );
+          isAdmin = userResult.rows[0]?.is_admin || false;
+        }
+
+        const isOwner = checkResult.rows[0].user_id === userId;
+
+        // Allow deletion if admin OR owner
+        if (!isAdmin && !isOwner) {
           socket.emit('error', { message: 'Unauthorized to delete this message' });
           return;
         }
@@ -190,7 +203,7 @@ module.exports = (io) => {
           chatroomId
         });
 
-        console.log(`Message ${messageId} deleted by ${username}`);
+        console.log(`Message ${messageId} deleted by ${username}${isAdmin && !isOwner ? ' (admin)' : ''}`);
       } catch (error) {
         console.error('Delete message error:', error);
         socket.emit('error', { message: 'Failed to delete message' });
