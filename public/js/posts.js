@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupPostCreation();
         loadTrendingTags();
         setupLiveFeed();
+        startTimestampUpdater();
     }
 });
 
@@ -379,7 +380,7 @@ function renderPost(post) {
                 <img src="${avatarUrl}" alt="${post.username}" class="post-avatar">
                 <div class="post-user-info">
                     <a href="/profile.html?username=${post.username}" class="post-username">${post.username}</a>
-                    <span class="post-time">${formatDate(post.created_at)}</span>
+                    <span class="post-time" data-timestamp="${post.created_at}">${formatDate(post.created_at)}</span>
                     ${post.updated_at !== post.created_at ? '<span class="post-edited">(edited)</span>' : ''}
                     ${visibilityHtml}
                 </div>
@@ -710,4 +711,23 @@ async function submitComment(e) {
         console.error('Submit comment error:', error);
         alert('Failed to post comment');
     }
+}
+
+// Update all post timestamps every minute
+function startTimestampUpdater() {
+    // Update immediately on load
+    updateAllTimestamps();
+
+    // Then update every 60 seconds
+    setInterval(updateAllTimestamps, 60000);
+}
+
+function updateAllTimestamps() {
+    const timestampElements = document.querySelectorAll('.post-time[data-timestamp]');
+    timestampElements.forEach(element => {
+        const timestamp = element.getAttribute('data-timestamp');
+        if (timestamp) {
+            element.textContent = formatDate(timestamp);
+        }
+    });
 }
