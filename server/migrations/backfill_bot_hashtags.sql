@@ -6,7 +6,7 @@ DO $$
 DECLARE
     post_record RECORD;
     hashtag_record RECORD;
-    tag_id INTEGER;
+    v_tag_id INTEGER;
 BEGIN
     -- Loop through bot posts that have hashtags in content but no tags linked yet
     FOR post_record IN
@@ -27,11 +27,11 @@ BEGIN
             INSERT INTO tags (name, use_count)
             VALUES (hashtag_record.tag_name, 1)
             ON CONFLICT (name) DO UPDATE SET use_count = tags.use_count + 1
-            RETURNING id INTO tag_id;
+            RETURNING id INTO v_tag_id;
 
             -- Link tag to post
             INSERT INTO post_tags (post_id, tag_id)
-            VALUES (post_record.id, tag_id)
+            VALUES (post_record.id, v_tag_id)
             ON CONFLICT (post_id, tag_id) DO NOTHING;
         END LOOP;
     END LOOP;
