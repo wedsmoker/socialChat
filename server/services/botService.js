@@ -1,8 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { query } = require('../db');
 const bcrypt = require('bcrypt');
-const fs = require('fs').promises;
-const path = require('path');
 
 class BotService {
   constructor() {
@@ -16,7 +14,6 @@ class BotService {
     this.lastBotIndex = -1; // Track last bot to avoid repeats
     this.lastRoastedUsername = null; // Track last roasted user to prevent spam
     this.scheduledTimeouts = [];
-    this.stateFilePath = path.join(__dirname, '../data/bot-state.json');
     this.lastPostTime = 0; // Track last post time for cooldown
     this.minPostCooldown = 5 * 60 * 1000; // 5 minute minimum between ANY posts (prevents API quota drain)
 
@@ -26,36 +23,38 @@ class BotService {
     } else if (this.enabled) {
       console.warn('⚠ Bot service enabled but GEMINI_API_KEY not set');
     }
-
-    // Load persisted state
-    this.loadState();
   }
 
-  // Load bot state from file
+  // Load bot state from database
   async loadState() {
     try {
-      const data = await fs.readFile(this.stateFilePath, 'utf8');
-      const state = JSON.parse(data);
-      this.lastRoastedUsername = state.lastRoastedUsername || null;
-      if (this.lastRoastedUsername) {
-        console.log(`✓ Loaded bot state: last roasted ${this.lastRoastedUsername}`);
+      const result = await query(
+        "SELECT value FROM bot_state WHERE key = 'last_roasted_username'",
+        []
+      );
+
+      if (result.rows.length > 0) {
+        this.lastRoastedUsername = result.rows[0].value;
+        if (this.lastRoastedUsername) {
+          console.log(`✓ Loaded bot state: last roasted ${this.lastRoastedUsername}`);
+        }
       }
     } catch (error) {
-      // File doesn't exist or invalid JSON - that's fine on first run
-      if (error.code !== 'ENOENT') {
-        console.error('Error loading bot state:', error);
-      }
+      // Table might not exist yet - that's fine on first run
+      console.error('Error loading bot state:', error);
     }
   }
 
-  // Save bot state to file
+  // Save bot state to database
   async saveState() {
     try {
-      const state = {
-        lastRoastedUsername: this.lastRoastedUsername,
-        lastRoastTime: new Date().toISOString()
-      };
-      await fs.writeFile(this.stateFilePath, JSON.stringify(state, null, 2), 'utf8');
+      await query(
+        `INSERT INTO bot_state (key, value, updated_at)
+         VALUES ('last_roasted_username', $1, CURRENT_TIMESTAMP)
+         ON CONFLICT (key)
+         DO UPDATE SET value = $1, updated_at = CURRENT_TIMESTAMP`,
+        [this.lastRoastedUsername]
+      );
     } catch (error) {
       console.error('Error saving bot state:', error);
     }
@@ -433,6 +432,9 @@ Just output the post text, nothing else.`;
     }
 
     await this.initializeBots();
+
+    // Load state from database before starting
+    await this.loadState();
 
     console.log('=== BOT SCHEDULE ===');
     console.log(`✓ First post in: 1 minute`);

@@ -94,6 +94,14 @@ const initDatabase = async () => {
       await pool.query(botMigration);
       console.log('Bot features migrated successfully');
     }
+
+    // Run bot state migration (database-based state storage)
+    const botStateMigrationPath = path.join(__dirname, 'migrations', 'add_bot_state.sql');
+    if (fs.existsSync(botStateMigrationPath)) {
+      const botStateMigration = fs.readFileSync(botStateMigrationPath, 'utf8');
+      await pool.query(botStateMigration);
+      console.log('Bot state storage migrated successfully');
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;
