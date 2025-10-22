@@ -460,7 +460,7 @@ function renderPost(post) {
                     💬 Comment <span class="comment-count">${post.comment_count || 0}</span>
                 </button>
             </div>
-            <div class="comments-section" id="comments-${post.id}" ${(post.comment_count > 0 || !isGuestUser) ? '' : 'style="display: none;"'}>
+            <div class="comments-section" id="comments-${post.id}" style="display: none;">
                 <div class="comment-input-section" ${isGuestUser ? 'style="display: none;"' : ''}>
                     <textarea class="comment-input" placeholder="Write a comment..." maxlength="2000"></textarea>
                     <button class="btn-submit-comment" data-post-id="${post.id}">Post Comment</button>
@@ -633,6 +633,18 @@ function attachPostEventListeners() {
     // Load more comments buttons
     document.querySelectorAll('.btn-load-more-comments').forEach(btn => {
         btn.addEventListener('click', loadMoreComments);
+    });
+
+    // Auto-show comments sections that have comments
+    document.querySelectorAll('.comments-section').forEach(section => {
+        const commentsList = section.querySelector('.comments-list');
+        const hasComments = commentsList && (
+            commentsList.querySelector('.comment') ||
+            commentsList.querySelector('.btn-load-more-comments')
+        );
+        if (hasComments) {
+            section.style.display = 'block';
+        }
     });
 }
 
