@@ -4,6 +4,7 @@ const socketIo = require('socket.io');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const { initDatabase } = require('./db');
@@ -52,12 +53,39 @@ io.use((socket, next) => {
 // Allow guest access for Socket.io
 io.use(allowGuestSocket);
 
+// Rate limiting - General API protection
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting - Strict for auth endpoints (prevents brute force)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login attempts per windowMs
+  message: 'Too many login attempts, please try again later.',
+  skipSuccessfulRequests: true, // Don't count successful requests
+});
+
+// Rate limiting - Post creation (prevents spam)
+const postLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // Limit each IP to 20 posts per hour
+  message: 'Too many posts created, please slow down.',
+});
+
+// Apply general rate limiting to all API routes
+app.use('/api/', apiLimiter);
+
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/posts', postsRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/posts', postsRoutes); // Post creation limiter applied in routes file
 app.use('/api/profiles', profilesRoutes);
 app.use('/api/chatrooms', chatroomsRoutes);
 app.use('/api/moderation', moderationRoutes);

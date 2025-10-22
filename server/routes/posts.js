@@ -1,8 +1,16 @@
 const express = require('express');
 const { query } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
 
 const router = express.Router();
+
+// Rate limiting for post creation
+const postCreationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // Limit each IP to 20 posts per hour
+  message: 'Too many posts created, please slow down.',
+});
 
 // Get all posts (feed)
 router.get('/', async (req, res) => {
@@ -85,7 +93,7 @@ const parseHashtags = (content) => {
 };
 
 // Create new post
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', postCreationLimiter, requireAuth, async (req, res) => {
   const { content, media_type, media_data, visibility, audio_duration, audio_format } = req.body;
 
   // Validation

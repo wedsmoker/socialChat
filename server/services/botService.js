@@ -8,8 +8,8 @@ class BotService {
   constructor() {
     this.enabled = process.env.BOT_ENABLED === 'true';
     this.apiKey = process.env.GEMINI_API_KEY;
-    this.postIntervalMin = parseInt(process.env.BOT_POST_INTERVAL_MIN || '50'); // 50 minutes default
-    this.postIntervalMax = parseInt(process.env.BOT_POST_INTERVAL_MAX || '70'); // 70 minutes default
+    this.postIntervalMin = parseInt(process.env.BOT_POST_INTERVAL_MIN || '25'); // 25 minutes default
+    this.postIntervalMax = parseInt(process.env.BOT_POST_INTERVAL_MAX || '35'); // 35 minutes default
     this.contextPostLimit = parseInt(process.env.BOT_CONTEXT_POST_LIMIT || '20'); // Last 20 posts
     this.genAI = null;
     this.botUsers = [];
@@ -17,6 +17,8 @@ class BotService {
     this.lastRoastedUsername = null; // Track last roasted user to prevent spam
     this.scheduledTimeouts = [];
     this.stateFilePath = path.join(__dirname, '../data/bot-state.json');
+    this.lastPostTime = 0; // Track last post time for cooldown
+    this.minPostCooldown = 5 * 60 * 1000; // 5 minute minimum between ANY posts (prevents API quota drain)
 
     if (this.enabled && this.apiKey) {
       this.genAI = new GoogleGenerativeAI(this.apiKey);
@@ -311,6 +313,15 @@ Just output the post text, nothing else.`;
       return;
     }
 
+    // Cooldown check - prevent API quota drain from rapid posting
+    const now = Date.now();
+    const timeSinceLastPost = now - this.lastPostTime;
+    if (timeSinceLastPost < this.minPostCooldown) {
+      const waitMinutes = Math.ceil((this.minPostCooldown - timeSinceLastPost) / 60000);
+      console.log(`⏳ Bot cooldown active - ${waitMinutes} minute(s) remaining before next post`);
+      return;
+    }
+
     try {
       // Collect context
       const context = await this.collectContext();
@@ -344,6 +355,9 @@ Just output the post text, nothing else.`;
          VALUES ($1, $2, 'public')`,
         [botUser.id, postContent]
       );
+
+      // Update last post time for cooldown tracking
+      this.lastPostTime = Date.now();
 
       console.log(`✓ Bot post created by ${botUser.username}: "${postContent.substring(0, 50)}..."`);
 

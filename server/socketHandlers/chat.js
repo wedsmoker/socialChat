@@ -7,6 +7,11 @@ const broadcastUserCount = (io, chatroomId) => {
   io.to(`chatroom_${chatroomId}`).emit('user_count_update', { userCount });
 };
 
+// Socket message throttling - Track last message time per socket
+const messageThrottleMap = new Map();
+const MESSAGE_COOLDOWN_MS = 1000; // 1 second between messages
+const MAX_MESSAGES_PER_MINUTE = 10;
+
 module.exports = (io) => {
   io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
@@ -30,6 +35,13 @@ module.exports = (io) => {
     }
 
     console.log(`${isGuest ? 'Guest' : 'User'} connected: ${displayName}`);
+
+    // Initialize message tracking for this socket
+    messageThrottleMap.set(socket.id, {
+      lastMessageTime: 0,
+      messageCount: 0,
+      countResetTime: Date.now()
+    });
 
     // Track current chatroom
     let currentChatroomId = null;
@@ -87,6 +99,34 @@ module.exports = (io) => {
       if (message.length > 2000) {
         socket.emit('error', { message: 'Message exceeds 2000 characters' });
         return;
+      }
+
+      // Throttling check
+      const throttleData = messageThrottleMap.get(socket.id);
+      if (throttleData) {
+        const now = Date.now();
+
+        // Check cooldown between messages (1 second)
+        if (now - throttleData.lastMessageTime < MESSAGE_COOLDOWN_MS) {
+          socket.emit('error', { message: 'Please wait a moment before sending another message' });
+          return;
+        }
+
+        // Reset message count every minute
+        if (now - throttleData.countResetTime > 60000) {
+          throttleData.messageCount = 0;
+          throttleData.countResetTime = now;
+        }
+
+        // Check messages per minute limit
+        if (throttleData.messageCount >= MAX_MESSAGES_PER_MINUTE) {
+          socket.emit('error', { message: 'Too many messages. Please slow down.' });
+          return;
+        }
+
+        // Update throttle data
+        throttleData.lastMessageTime = now;
+        throttleData.messageCount++;
       }
 
       try {
@@ -212,6 +252,9 @@ module.exports = (io) => {
 
     socket.on('disconnect', () => {
       console.log('User disconnected:', displayName);
+
+      // Clean up throttle tracking
+      messageThrottleMap.delete(socket.id);
 
       // Broadcast updated user count for the chatroom they were in
       if (currentChatroomId) {
