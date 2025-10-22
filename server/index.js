@@ -26,6 +26,9 @@ const io = socketIo(server);
 
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy - Required for Railway/Heroku/etc to get real client IP for rate limiting
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(express.json({ limit: '10mb' })); // Support Base64 images
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
