@@ -159,13 +159,13 @@ class BotService {
   // Collect RAG context from recent posts (text only)
   async collectContext() {
     try {
+      // Get recent posts from ALL users (including bots for natural conversation)
       const result = await query(
-        `SELECT p.content, u.username, p.created_at
+        `SELECT p.content, u.username, u.is_bot, p.created_at
          FROM posts p
          JOIN users u ON p.user_id = u.id
          WHERE p.deleted_by_mod = FALSE
            AND u.is_banned = FALSE
-           AND u.is_bot = FALSE
            AND p.visibility = 'public'
          ORDER BY p.created_at DESC
          LIMIT $1`,
@@ -179,32 +179,46 @@ class BotService {
       // Extract text content only
       const posts = result.rows.map(row => ({
         content: row.content,
-        username: row.username
+        username: row.username,
+        isBot: row.is_bot
       }));
 
-      // Check for prompt injection attempts (skip if we already roasted this user)
+      // Check for prompt injection attempts in NON-BOT posts only (skip if we already roasted this user)
       let injectionAttempt = null;
       for (const post of posts) {
-        const detection = this.detectPromptInjection(post.content, post.username);
-        if (detection.detected && detection.username !== this.lastRoastedUsername) {
-          injectionAttempt = detection;
-          break; // Found one, call it out!
+        if (!post.isBot) { // Only check real user posts for injection
+          const detection = this.detectPromptInjection(post.content, post.username);
+          if (detection.detected && detection.username !== this.lastRoastedUsername) {
+            injectionAttempt = detection;
+            break; // Found one, call it out!
+          }
         }
       }
 
-      // Extract hashtags
-      const allHashtags = posts
+      // Filter out bot callout posts from context (posts with roast keywords)
+      const roastKeywords = ['prompt injection', 'nice try', 'caught', 'trying to hack', 'skill issue'];
+      const contextPosts = posts.filter(post => {
+        // If it's a bot post, check if it contains roast keywords
+        if (post.isBot) {
+          const lowerContent = post.content.toLowerCase();
+          return !roastKeywords.some(keyword => lowerContent.includes(keyword));
+        }
+        return true; // Include all non-bot posts
+      });
+
+      // Extract hashtags from context posts (excludes roast posts)
+      const allHashtags = contextPosts
         .flatMap(post => {
           const matches = post.content.match(/#(\w+)/g) || [];
           return matches.map(tag => tag.toLowerCase());
         });
       const topHashtags = [...new Set(allHashtags)].slice(0, 5);
 
-      // Get unique usernames
-      const activeUsers = [...new Set(posts.map(p => p.username))].slice(0, 10);
+      // Get unique usernames from context posts
+      const activeUsers = [...new Set(contextPosts.map(p => p.username))].slice(0, 10);
 
-      // Create concise summary
-      const recentContent = posts.slice(0, 10).map(p =>
+      // Create concise summary from context posts (excludes roast posts)
+      const recentContent = contextPosts.slice(0, 10).map(p =>
         `${p.username}: ${p.content.substring(0, 150)}`
       ).join('\n');
 
@@ -212,7 +226,7 @@ class BotService {
         summary: recentContent,
         hashtags: topHashtags,
         usernames: activeUsers,
-        postCount: posts.length,
+        postCount: contextPosts.length,
         injectionAttempt
       };
 
