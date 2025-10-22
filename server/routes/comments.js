@@ -4,6 +4,12 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Will be set by index.js
+let io = null;
+router.setSocketIO = (socketIO) => {
+  io = socketIO;
+};
+
 // Get comments for a post
 router.get('/post/:postId', async (req, res) => {
   const { postId } = req.params;
@@ -69,14 +75,21 @@ router.post('/', requireAuth, async (req, res) => {
       [req.session.userId]
     );
 
+    const commentData = {
+      ...result.rows[0],
+      username: userResult.rows[0].username,
+      profile_picture: userResult.rows[0].profile_picture,
+      reaction_count: 0
+    };
+
+    // Broadcast new comment to all connected clients
+    if (io) {
+      io.emit('new_comment', commentData);
+    }
+
     res.status(201).json({
       message: 'Comment created successfully',
-      comment: {
-        ...result.rows[0],
-        username: userResult.rows[0].username,
-        profile_picture: userResult.rows[0].profile_picture,
-        reaction_count: 0
-      }
+      comment: commentData
     });
   } catch (error) {
     console.error('Create comment error:', error);

@@ -30,6 +30,12 @@ function setupLiveFeed() {
             prependPost(post);
         });
 
+        // Listen for new comments
+        postsSocket.on('new_comment', (comment) => {
+            console.log('New comment received via Socket.io:', comment);
+            addCommentToPost(comment);
+        });
+
         postsSocket.on('connect', () => {
             console.log('Live feed socket connected');
         });
@@ -68,6 +74,63 @@ function prependPost(post) {
     postElement.style.animation = 'slideIn 0.3s ease-out';
     setTimeout(() => {
         postElement.style.animation = '';
+    }, 300);
+}
+
+// Add new comment to post (real-time update)
+function addCommentToPost(comment) {
+    const commentsList = document.getElementById(`comments-list-${comment.post_id}`);
+    if (!commentsList) return;
+
+    // Check if comment already exists (prevent duplicates)
+    const existingComment = commentsList.querySelector(`[data-comment-id="${comment.id}"]`);
+    if (existingComment) return;
+
+    // Remove "no comments" message if it exists
+    const noComments = commentsList.querySelector('.no-comments');
+    if (noComments) {
+        noComments.remove();
+    }
+
+    // Check if there's a "Load more" button
+    const loadMoreBtn = commentsList.querySelector('.btn-load-more-comments');
+
+    // Create comment element
+    const commentHTML = renderSingleComment(comment);
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = commentHTML;
+    const commentElement = tempDiv.firstElementChild;
+
+    // Add comment to the list (append to end, chronological order)
+    if (loadMoreBtn) {
+        // If there's a load more button, insert before it
+        commentsList.insertBefore(commentElement, loadMoreBtn);
+    } else {
+        // Otherwise append to end
+        commentsList.appendChild(commentElement);
+    }
+
+    // Update comment count
+    const commentBtn = document.querySelector(`.btn-comment[data-post-id="${comment.post_id}"]`);
+    if (commentBtn) {
+        const commentCount = commentBtn.querySelector('.comment-count');
+        const currentCount = parseInt(commentCount.textContent) || 0;
+        commentCount.textContent = currentCount + 1;
+    }
+
+    // Show comments section if it's hidden
+    const commentsSection = document.getElementById(`comments-${comment.post_id}`);
+    if (commentsSection && commentsSection.style.display === 'none') {
+        commentsSection.style.display = 'block';
+    }
+
+    // Re-attach event listeners
+    attachPostEventListeners();
+
+    // Add animation
+    commentElement.style.animation = 'slideIn 0.3s ease-out';
+    setTimeout(() => {
+        commentElement.style.animation = '';
     }, 300);
 }
 
@@ -394,17 +457,60 @@ function renderPost(post) {
                     👍 Like <span class="reaction-count">${post.reaction_count || 0}</span>
                 </button>
                 <button class="btn-comment" data-post-id="${post.id}" ${isGuestUser ? 'disabled title="Login to comment"' : ''}>
-                    💬 Comment <span class="comment-count">0</span>
+                    💬 Comment <span class="comment-count">${post.comment_count || 0}</span>
                 </button>
             </div>
-            <div class="comments-section" id="comments-${post.id}" style="display: none;">
+            <div class="comments-section" id="comments-${post.id}" ${(post.comment_count > 0 || !isGuestUser) ? '' : 'style="display: none;"'}>
                 <div class="comment-input-section" ${isGuestUser ? 'style="display: none;"' : ''}>
                     <textarea class="comment-input" placeholder="Write a comment..." maxlength="2000"></textarea>
                     <button class="btn-submit-comment" data-post-id="${post.id}">Post Comment</button>
                 </div>
                 <div class="comments-list" id="comments-list-${post.id}">
-                    <div class="loading">Loading comments...</div>
+                    ${renderComments(post, isGuestUser)}
                 </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderComments(post, isGuestUser) {
+    const comments = post.preview_comments || [];
+    const commentCount = post.comment_count || 0;
+
+    if (commentCount === 0) {
+        return '<p class="no-comments">No comments yet. Be the first to comment!</p>';
+    }
+
+    let html = '';
+
+    // Render the preview comments (first 3)
+    html += comments.map(comment => renderSingleComment(comment)).join('');
+
+    // Add "Load more" button if there are more than 3 comments
+    if (commentCount > 3) {
+        const remainingCount = commentCount - 3;
+        html += `<button class="btn-load-more-comments" data-post-id="${post.id}" data-loaded="3">
+            Load ${remainingCount} more comment${remainingCount > 1 ? 's' : ''}
+        </button>`;
+    }
+
+    return html;
+}
+
+function renderSingleComment(comment) {
+    const isOwner = currentUser && comment.user_id === currentUser.id;
+    const avatarUrl = comment.profile_picture || `https://ui-avatars.com/api/?name=${comment.username}&background=random`;
+
+    return `
+        <div class="comment" data-comment-id="${comment.id}">
+            <img src="${avatarUrl}" alt="${comment.username}" class="comment-avatar">
+            <div class="comment-content">
+                <div class="comment-header">
+                    <a href="/profile.html?username=${comment.username}" class="comment-username">${comment.username}</a>
+                    <span class="comment-time">${formatDate(comment.created_at)}</span>
+                    ${isOwner ? `<button class="btn-delete-comment" data-comment-id="${comment.id}" data-post-id="${comment.post_id}">Delete</button>` : ''}
+                </div>
+                <div class="comment-text">${escapeHtml(comment.content)}</div>
             </div>
         </div>
     `;
@@ -517,6 +623,16 @@ function attachPostEventListeners() {
     // Submit comment buttons
     document.querySelectorAll('.btn-submit-comment').forEach(btn => {
         btn.addEventListener('click', submitComment);
+    });
+
+    // Delete comment buttons
+    document.querySelectorAll('.btn-delete-comment').forEach(btn => {
+        btn.addEventListener('click', handleDeleteComment);
+    });
+
+    // Load more comments buttons
+    document.querySelectorAll('.btn-load-more-comments').forEach(btn => {
+        btn.addEventListener('click', loadMoreComments);
     });
 }
 
@@ -648,40 +764,78 @@ async function toggleComments(e) {
 
 async function loadComments(postId) {
     const commentsList = document.getElementById(`comments-list-${postId}`);
-    commentsList.innerHTML = '<div class="loading">Loading comments...</div>';
+    const existingComments = commentsList.querySelectorAll('.comment');
+    const loadedCount = existingComments.length;
+
     try {
         const response = await fetch(`/api/comments/post/${postId}`);
         const data = await response.json();
         const commentBtn = document.querySelector(`.btn-comment[data-post-id="${postId}"]`);
         const commentCount = commentBtn.querySelector('.comment-count');
         commentCount.textContent = data.comments.length;
+
         if (data.comments.length === 0) {
             commentsList.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>';
             return;
         }
-        commentsList.innerHTML = data.comments.map(comment => {
-            const isOwner = currentUser && comment.user_id === currentUser.id;
-            const avatarUrl = comment.profile_picture || `https://ui-avatars.com/api/?name=${comment.username}&background=random`;
-            return `<div class="comment" data-comment-id="${comment.id}"><img src="${avatarUrl}" alt="${comment.username}" class="comment-avatar"><div class="comment-content"><div class="comment-header"><a href="/profile.html?username=${comment.username}" class="comment-username">${comment.username}</a><span class="comment-time">${formatDate(comment.created_at)}</span>${isOwner ? `<button class="btn-delete-comment" data-comment-id="${comment.id}" data-post-id="${postId}">Delete</button>` : ''}</div><div class="comment-text">${escapeHtml(comment.content)}</div></div></div>`;
-        }).join('');
-        document.querySelectorAll('.btn-delete-comment').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const commentId = e.target.dataset.commentId;
-                const postId = e.target.dataset.postId;
-                if (!confirm('Are you sure you want to delete this comment?')) return;
-                try {
-                    const response = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
-                    if (response.ok) await loadComments(postId);
-                    else alert('Failed to delete comment');
-                } catch (error) {
-                    console.error('Delete comment error:', error);
-                    alert('Failed to delete comment');
-                }
-            });
-        });
+
+        commentsList.innerHTML = data.comments.map(comment => renderSingleComment(comment)).join('');
+
+        // Re-attach event listeners
+        attachPostEventListeners();
     } catch (error) {
         console.error('Load comments error:', error);
         commentsList.innerHTML = '<p class="error">Failed to load comments</p>';
+    }
+}
+
+async function loadMoreComments(e) {
+    const postId = e.target.dataset.postId;
+    const loadMoreBtn = e.target;
+
+    loadMoreBtn.textContent = 'Loading...';
+    loadMoreBtn.disabled = true;
+
+    try {
+        await loadComments(postId);
+    } catch (error) {
+        console.error('Load more comments error:', error);
+        loadMoreBtn.textContent = 'Failed to load';
+        loadMoreBtn.disabled = false;
+    }
+}
+
+async function handleDeleteComment(e) {
+    const commentId = e.target.dataset.commentId;
+    const postId = e.target.dataset.postId;
+
+    if (!confirm('Are you sure you want to delete this comment?')) return;
+
+    try {
+        const response = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+        if (response.ok) {
+            // Remove comment from DOM
+            const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+            if (commentElement) commentElement.remove();
+
+            // Update comment count
+            const commentBtn = document.querySelector(`.btn-comment[data-post-id="${postId}"]`);
+            const commentCount = commentBtn.querySelector('.comment-count');
+            const currentCount = parseInt(commentCount.textContent) || 0;
+            commentCount.textContent = Math.max(0, currentCount - 1);
+
+            // Check if no comments left
+            const commentsList = document.getElementById(`comments-list-${postId}`);
+            const remainingComments = commentsList.querySelectorAll('.comment');
+            if (remainingComments.length === 0) {
+                commentsList.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>';
+            }
+        } else {
+            alert('Failed to delete comment');
+        }
+    } catch (error) {
+        console.error('Delete comment error:', error);
+        alert('Failed to delete comment');
     }
 }
 
@@ -702,7 +856,14 @@ async function submitComment(e) {
         });
         if (response.ok) {
             textarea.value = '';
-            await loadComments(postId);
+            const data = await response.json();
+
+            // The Socket.io listener will handle adding the comment to the UI
+            // But we still update the count here in case Socket.io is delayed
+            const commentBtn = document.querySelector(`.btn-comment[data-post-id="${postId}"]`);
+            const commentCount = commentBtn.querySelector('.comment-count');
+            const currentCount = parseInt(commentCount.textContent) || 0;
+            commentCount.textContent = currentCount + 1;
         } else {
             const data = await response.json();
             alert(data.error || 'Failed to post comment');

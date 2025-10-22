@@ -25,9 +25,11 @@ router.get('/', async (req, res) => {
   const userId = req.session?.userId;
 
   try {
+    // Get posts with tags
     const result = await query(
       `SELECT p.*, u.username, u.profile_picture as user_profile_picture,
        (SELECT COUNT(*) FROM post_reactions WHERE post_id = p.id) as reaction_count,
+       (SELECT COUNT(*) FROM comments WHERE post_id = p.id AND deleted_at IS NULL) as comment_count,
        COALESCE(
          json_agg(
            DISTINCT jsonb_build_object('id', t.id, 'name', t.name)
@@ -58,7 +60,23 @@ router.get('/', async (req, res) => {
       [limit, offset, userId || null]
     );
 
-    res.json({ posts: result.rows });
+    // Get first 3 comments for each post
+    const posts = result.rows;
+    for (let post of posts) {
+      const commentsResult = await query(
+        `SELECT c.*, u.username, u.profile_picture,
+         (SELECT COUNT(*) FROM comment_reactions WHERE comment_id = c.id) as reaction_count
+         FROM comments c
+         JOIN users u ON c.user_id = u.id
+         WHERE c.post_id = $1 AND c.deleted_at IS NULL
+         ORDER BY c.created_at ASC
+         LIMIT 3`,
+        [post.id]
+      );
+      post.preview_comments = commentsResult.rows;
+    }
+
+    res.json({ posts: posts });
   } catch (error) {
     console.error('Get posts error:', error);
     res.status(500).json({ error: 'Internal server error' });

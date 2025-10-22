@@ -98,6 +98,9 @@ app.use('/api/chatrooms', chatroomsRoutes);
 app.use('/api/moderation', moderationRoutes);
 app.use('/api/tags', tagsRoutes);
 app.use('/api/friends', friendsRoutes);
+
+// Set Socket.io for comments route (for real-time comments)
+commentsRoutes.setSocketIO(io);
 app.use('/api/comments', commentsRoutes);
 
 // Socket.io connection handler
