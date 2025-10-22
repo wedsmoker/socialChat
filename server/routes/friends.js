@@ -242,9 +242,9 @@ router.put('/:friendshipId/accept', requireAuth, async (req, res) => {
 
     const friendshipData = friendship.rows[0];
 
-    // User must be either requester or receiver
-    if (friendshipData.requester_id !== userId && friendshipData.receiver_id !== userId) {
-      return res.status(403).json({ error: 'Unauthorized to accept this request' });
+    // User must be the receiver (only the person being requested can accept)
+    if (friendshipData.receiver_id !== userId) {
+      return res.status(403).json({ error: 'Only the receiver can accept this friend request' });
     }
 
     if (friendshipData.status !== 'pending') {
