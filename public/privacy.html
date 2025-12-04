@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy & Data - 1socialChat</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .privacy-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: var(--secondary-bg);
+            border-radius: 12px;
+        }
+        .privacy-container h1 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+        .privacy-container h2 {
+            color: var(--text-primary);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        .privacy-container p, .privacy-container li {
+            line-height: 1.8;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+        .privacy-container ul {
+            margin-left: 2rem;
+        }
+        .privacy-container strong {
+            color: var(--text-primary);
+        }
+        .highlight-box {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            margin: 1.5rem 0;
+        }
+        .btn-back {
+            display: inline-block;
+            margin-top: 2rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .btn-back:hover {
+            background: var(--accent-hover);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo">
+                <a href="/" class="logo-main">1socialChat</a>
+                <span class="logo-tagline">Zero billionaires. 100% artist-owned.</span>
+            </h1>
+            <div class="nav-user">
+                <a href="/login.html" class="btn-secondary">Login</a>
+                <a href="/register.html" class="btn-primary">Sign Up</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="privacy-container">
+        <h1>Privacy & Your Data</h1>
+        <p>We're building a social network that respects your privacy. Here's exactly what we collect and why.</p>
+
+        <h2>What We Collect</h2>
+        <ul>
+            <li><strong>Account Info:</strong> Username, password (hashed), bio, profile picture</li>
+            <li><strong>Your Content:</strong> Posts, messages, comments (the stuff you create)</li>
+            <li><strong>Activity Logs:</strong> IP addresses, pages visited, timestamps (for security)</li>
+            <li><strong>Session Cookies:</strong> So you stay logged in</li>
+        </ul>
+
+        <h2>What We DON'T Do</h2>
+        <ul>
+            <li>Sell your data to advertisers or data brokers</li>
+            <li>Track you across other websites</li>
+            <li>Use third-party analytics (no Google Analytics!)</li>
+            <li>Train AI on your posts without permission</li>
+            <li>Share your info with anyone except when legally required</li>
+        </ul>
+
+        <div class="highlight-box">
+            <h2 style="margin-top: 0;">Download Your Data</h2>
+            <p><strong>How to get everything we know about you:</strong></p>
+            <ol style="margin-left: 2rem; color: var(--text-secondary);">
+                <li><a href="/register.html" style="color: var(--accent);">Create an account</a> (if you don't have one)</li>
+                <li>Go to your profile page</li>
+                <li>Click "Edit Profile"</li>
+                <li>Scroll down to "Your Data" section</li>
+                <li>Click "Download My Data"</li>
+                <li>Get a JSON file with everything: posts, messages, friends, activity logs</li>
+            </ol>
+            <p><strong>Note:</strong> You need an account to download data. We can't export data for anonymous visitors.</p>
+        </div>
+
+        <h2>Why We Log IP Addresses</h2>
+        <p>We track IP addresses and page visits for two reasons:</p>
+        <ul>
+            <li><strong>Security:</strong> Detect bots, prevent spam, identify abuse</li>
+            <li><strong>Moderation:</strong> Help admins understand suspicious activity</li>
+        </ul>
+        <p>This data stays on our server and is never sold or shared.</p>
+
+        <h2>Your Rights</h2>
+        <ul>
+            <li><strong>Access:</strong> Download all your data anytime (see above)</li>
+            <li><strong>Delete:</strong> Contact admin to permanently delete your account</li>
+            <li><strong>Correct:</strong> Edit your profile, posts, and info anytime</li>
+            <li><strong>Know:</strong> See exactly what we store about you</li>
+        </ul>
+
+        <h2>Questions or Concerns?</h2>
+        <p>Reach out to <a href="mailto:hello@wwel.sh" style="color: var(--accent);">hello@wwel.sh</a></p>
+
+        <a href="/" class="btn-back">Back to Home</a>
+    </div>
+
+    <script src="/js/cookie-banner.js"></script>
+</body>
+</html>

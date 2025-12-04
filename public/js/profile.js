@@ -664,3 +664,42 @@ async function saveFriendOrder() {
         console.error('Save friend order error:', error);
     }
 }
+
+// Download user data
+document.getElementById('downloadDataBtn')?.addEventListener('click', async () => {
+    try {
+        const button = document.getElementById('downloadDataBtn');
+        button.disabled = true;
+        button.textContent = 'Preparing download...';
+
+        const response = await fetch('/api/users/export-data');
+
+        if (!response.ok) {
+            throw new Error('Failed to export data');
+        }
+
+        const data = await response.json();
+
+        // Create downloadable JSON file
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const filename = currentUser.username + '_data_' + new Date().toISOString().split('T')[0] + '.json';
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        button.disabled = false;
+        button.textContent = '📊 Download My Data';
+        alert('Data exported successfully!');
+    } catch (error) {
+        console.error('Export data error:', error);
+        alert('Failed to export data. Please try again.');
+        const button = document.getElementById('downloadDataBtn');
+        button.disabled = false;
+        button.textContent = '📊 Download My Data';
+    }
+});

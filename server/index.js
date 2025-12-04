@@ -16,6 +16,7 @@ const moderationRoutes = require('./routes/moderation');
 const tagsRoutes = require('./routes/tags');
 const friendsRoutes = require('./routes/friends');
 const commentsRoutes = require('./routes/comments');
+const usersRoutes = require('./routes/users');
 const chatHandler = require('./socketHandlers/chat');
 const { allowGuestSocket } = require('./middleware/auth');
 const botService = require('./services/botService');
@@ -114,6 +115,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // API Routes
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/users', usersRoutes);
 
 // Set Socket.io for posts route (for live feed)
 postsRoutes.setSocketIO(io);

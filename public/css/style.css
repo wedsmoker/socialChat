@@ -1,18 +1,19 @@
-/* 1socialChat - Modern Social Media Styling */
+/* 1socialChat - Brutalist Minimal Styling */
 
 :root {
-    --primary-bg: #1a1a2e;
-    --secondary-bg: #16213e;
-    --card-bg: #0f3460;
-    --accent: #e94560;
-    --accent-hover: #d63651;
-    --text-primary: #eee;
-    --text-secondary: #aaa;
-    --border: #2a2a4e;
-    --success: #2ecc71;
-    --error: #e74c3c;
-    --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --primary-bg: #d9d9d9;
+    --secondary-bg: #ffffff;
+    --card-bg: #e8e8e8;
+    --accent: #0000ff;
+    --accent-hover: #0000cc;
+    --text-primary: #000000;
+    --text-secondary: #666666;
+    --border: #000000;
+    --success: #00ff00;
+    --error: #ff0000;
+    --warning: #ffff00;
+    --gradient-1: none;
+    --gradient-2: none;
 }
 
 * {
@@ -22,11 +23,31 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: 'Courier New', Courier, monospace;
     background-color: var(--primary-bg);
     color: var(--text-primary);
     line-height: 1.6;
     zoom: 0.7;
+}
+
+/* BRUTALIST OVERRIDES - Remove all rounded corners and shadows */
+* {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Make borders thicker and black */
+.navbar,
+.post-card,
+.modal-content,
+.profile-header,
+.comment,
+input,
+textarea,
+button,
+select {
+    border-width: 2px !important;
+    border-color: var(--border) !important;
 }
 
 a {
@@ -65,10 +86,8 @@ a:hover {
 }
 
 .logo-main {
-    background: var(--gradient-1);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--accent);
+    font-weight: bold;
     text-decoration: none;
     display: inline-block;
 }
@@ -171,10 +190,8 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 }
 
 .auth-logo .logo-main {
-    background: var(--gradient-1);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--accent);
+    font-weight: bold;
 }
 
 .auth-logo .logo-tagline {
@@ -318,9 +335,10 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 
 /* Posts Feed */
 .posts-container {
-    max-height: calc(100vh - 150px);
+    min-height: 500px;
     overflow-y: auto;
     padding-right: 0.5rem;
+    padding-bottom: 2rem;
 }
 
 .posts-container::-webkit-scrollbar {
@@ -421,6 +439,8 @@ button, .btn-primary, .btn-secondary, .btn-icon {
     margin-bottom: 1rem;
     white-space: pre-wrap;
     word-wrap: break-word;
+    font-size: 1.3rem;
+    line-height: 1.8;
 }
 
 .post-media {
@@ -1482,3 +1502,121 @@ button, .btn-primary, .btn-secondary, .btn-icon {
 .btn-delete-comment:hover{color:var(--error)}
 .comment-text{background:var(--secondary-bg);padding:0.6rem;border-radius:8px;word-wrap:break-word}
 .no-comments{text-align:center;padding:1rem;color:var(--text-secondary)}
+
+/* ==================== COOKIE BANNER ==================== */
+.cookie-banner {
+    position: fixed;
+    bottom: -100%;
+    left: 0;
+    right: 0;
+    background: var(--secondary-bg);
+    border-top: 2px solid var(--accent);
+    padding: 1.5rem;
+    z-index: 10000;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    transition: bottom 0.3s ease-out;
+}
+
+.cookie-banner-show {
+    bottom: 0;
+}
+
+.cookie-banner-hide {
+    bottom: -100%;
+}
+
+.cookie-banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.cookie-banner-text {
+    flex: 1;
+    min-width: 300px;
+}
+
+.cookie-banner-text h3 {
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.cookie-banner-text p {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.cookie-banner-text p strong {
+    color: var(--text-primary);
+}
+
+.cookie-banner-small {
+    font-size: 0.8rem !important;
+    color: var(--text-secondary);
+}
+
+.cookie-banner-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.cookie-btn-primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+}
+
+.cookie-btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.cookie-btn-link {
+    color: var(--text-secondary);
+    text-decoration: underline;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.cookie-btn-link:hover {
+    color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .cookie-banner-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .cookie-banner-actions {
+        flex-direction: column;
+    }
+    
+    .cookie-btn-primary {
+        width: 100%;
+    }
+}
+
+/* ==================== PROFILE DATA SECTION ==================== */
+.profile-data-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+}
+
+.profile-data-section h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
