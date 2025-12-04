@@ -9,6 +9,13 @@ async function checkAuth() {
             return false;
         }
 
+        // Check if user is actually an admin
+        if (!data.user?.isAdmin) {
+            alert('Access denied. This page requires admin privileges.');
+            window.location.href = '/';
+            return false;
+        }
+
         return true;
     } catch (error) {
         console.error('Auth check error:', error);
@@ -298,10 +305,10 @@ function createUserCard(user) {
                 ${user.is_banned ? '<span class="user-badge banned">BANNED</span>' : ''}
             </div>
             <div class="user-stats">
-                <span>📝 ${user.post_count} posts</span>
-                <span>🚩 ${user.report_count} reports</span>
-                <span>📅 Joined ${createdAt}</span>
-                ${bannedAt ? `<span>🚫 Banned ${bannedAt}</span>` : ''}
+                <span>${user.post_count} posts</span>
+                <span>${user.report_count} reports</span>
+                <span>Joined ${createdAt}</span>
+                ${bannedAt ? `<span>Banned ${bannedAt}</span>` : ''}
             </div>
         </div>
         <div class="user-actions">
@@ -314,6 +321,72 @@ function createUserCard(user) {
     `;
 
     return card;
+}
+
+// Load analytics
+async function loadAnalytics() {
+    const totalVisitsEl = document.getElementById('totalVisitsCount');
+    const uniqueVisitorsEl = document.getElementById('uniqueVisitorsCount');
+    const topPagesContainer = document.getElementById('topPagesContainer');
+    const recentVisitorsContainer = document.getElementById('recentVisitorsContainer');
+    const visitsPerDayContainer = document.getElementById('visitsPerDayContainer');
+
+    topPagesContainer.innerHTML = '<p class="loading-message">Loading analytics...</p>';
+    recentVisitorsContainer.innerHTML = '<p class="loading-message">Loading analytics...</p>';
+    visitsPerDayContainer.innerHTML = '<p class="loading-message">Loading analytics...</p>';
+
+    try {
+        const response = await fetch('/api/moderation/analytics');
+
+        if (!response.ok) {
+            throw new Error('Failed to load analytics');
+        }
+
+        const data = await response.json();
+
+        // Update summary stats
+        totalVisitsEl.textContent = data.totalVisits;
+        uniqueVisitorsEl.textContent = data.uniqueVisitors;
+
+        // Top Pages
+        if (data.topPages.length === 0) {
+            topPagesContainer.innerHTML = '<p class="empty-message">No data yet.</p>';
+        } else {
+            topPagesContainer.innerHTML = '<table class="analytics-table"><thead><tr><th>Path</th><th>Visits</th></tr></thead><tbody>' +
+                data.topPages.map(page => `<tr><td>${page.path}</td><td>${page.visits}</td></tr>`).join('') +
+                '</tbody></table>';
+        }
+
+        // Recent Visitors
+        if (data.recentVisitors.length === 0) {
+            recentVisitorsContainer.innerHTML = '<p class="empty-message">No visitors yet.</p>';
+        } else {
+            recentVisitorsContainer.innerHTML = '<table class="analytics-table"><thead><tr><th>IP</th><th>Path</th><th>Time</th><th>User Agent</th></tr></thead><tbody>' +
+                data.recentVisitors.map(visitor => {
+                    const visitTime = new Date(visitor.visited_at).toLocaleString();
+                    const ua = visitor.user_agent.substring(0, 60);
+                    return `<tr><td>${visitor.ip_address}</td><td>${visitor.path}</td><td>${visitTime}</td><td title="${visitor.user_agent}">${ua}...</td></tr>`;
+                }).join('') +
+                '</tbody></table>';
+        }
+
+        // Visits Per Day
+        if (data.visitsPerDay.length === 0) {
+            visitsPerDayContainer.innerHTML = '<p class="empty-message">No data yet.</p>';
+        } else {
+            visitsPerDayContainer.innerHTML = '<table class="analytics-table"><thead><tr><th>Date</th><th>Total Visits</th><th>Unique IPs</th></tr></thead><tbody>' +
+                data.visitsPerDay.map(day => {
+                    const date = new Date(day.date).toLocaleDateString();
+                    return `<tr><td>${date}</td><td>${day.visits}</td><td>${day.unique_ips}</td></tr>`;
+                }).join('') +
+                '</tbody></table>';
+        }
+    } catch (error) {
+        console.error('Load analytics error:', error);
+        topPagesContainer.innerHTML = '<p class="empty-message">Failed to load analytics.</p>';
+        recentVisitorsContainer.innerHTML = '<p class="empty-message">Failed to load analytics.</p>';
+        visitsPerDayContainer.innerHTML = '<p class="empty-message">Failed to load analytics.</p>';
+    }
 }
 
 // Tab switching
@@ -334,6 +407,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             loadReports(document.getElementById('reportStatusFilter').value);
         } else if (tabName === 'users') {
             loadUsers();
+        } else if (tabName === 'analytics') {
+            loadAnalytics();
         }
     });
 });
@@ -352,6 +427,10 @@ document.getElementById('refreshReportsBtn')?.addEventListener('click', () => {
 document.getElementById('refreshUsersBtn')?.addEventListener('click', () => {
     loadUsers();
     loadStats();
+});
+
+document.getElementById('refreshAnalyticsBtn')?.addEventListener('click', () => {
+    loadAnalytics();
 });
 
 // Initialize

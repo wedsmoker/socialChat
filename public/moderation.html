@@ -45,6 +45,7 @@
         <div class="tab-navigation">
             <button class="tab-btn active" data-tab="reports">Reports</button>
             <button class="tab-btn" data-tab="users">Users</button>
+            <button class="tab-btn" data-tab="analytics">Analytics</button>
         </div>
 
         <!-- Reports Tab -->
@@ -58,7 +59,7 @@
                         <option value="resolved">Resolved</option>
                     </select>
                 </label>
-                <button id="refreshReportsBtn" class="btn-secondary">🔄 Refresh</button>
+                <button id="refreshReportsBtn" class="btn-secondary">Refresh</button>
             </div>
 
             <div id="reportsContainer" class="reports-list">
@@ -69,11 +70,46 @@
         <!-- Users Tab -->
         <div id="usersTab" class="tab-content">
             <div class="filter-controls">
-                <button id="refreshUsersBtn" class="btn-secondary">🔄 Refresh</button>
+                <button id="refreshUsersBtn" class="btn-secondary">Refresh</button>
             </div>
 
             <div id="usersContainer" class="users-list">
                 <p class="loading-message">Loading users...</p>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analyticsTab" class="tab-content">
+            <div class="filter-controls">
+                <button id="refreshAnalyticsBtn" class="btn-secondary">Refresh</button>
+            </div>
+
+            <div class="analytics-overview">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalVisitsCount">-</div>
+                        <div class="stat-label">Total Visits (14d)</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="uniqueVisitorsCount">-</div>
+                        <div class="stat-label">Unique Visitors</div>
+                    </div>
+                </div>
+
+                <h3>Top Pages</h3>
+                <div id="topPagesContainer" class="analytics-section">
+                    <p class="loading-message">Loading analytics...</p>
+                </div>
+
+                <h3>Recent Visitors</h3>
+                <div id="recentVisitorsContainer" class="analytics-section">
+                    <p class="loading-message">Loading analytics...</p>
+                </div>
+
+                <h3>Visits Per Day</h3>
+                <div id="visitsPerDayContainer" class="analytics-section">
+                    <p class="loading-message">Loading analytics...</p>
+                </div>
             </div>
         </div>
     </div>

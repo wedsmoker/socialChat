@@ -123,6 +123,14 @@ const initDatabase = async () => {
       await pool.query(backfillHashtags);
       console.log('Bot hashtags backfilled successfully');
     }
+
+    // Run visitor analytics migration
+    const visitorAnalyticsMigrationPath = path.join(__dirname, 'migrations', 'add_visitor_analytics.sql');
+    if (fs.existsSync(visitorAnalyticsMigrationPath)) {
+      const visitorAnalyticsMigration = fs.readFileSync(visitorAnalyticsMigrationPath, 'utf8');
+      await pool.query(visitorAnalyticsMigration);
+      console.log('Visitor analytics tracking migrated successfully');
+    }
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;

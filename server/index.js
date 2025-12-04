@@ -7,7 +7,7 @@ const path = require('path');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const { initDatabase } = require('./db');
+const { initDatabase, query } = require('./db');
 const authRoutes = require('./routes/auth');
 const postsRoutes = require('./routes/posts');
 const profilesRoutes = require('./routes/profiles');
@@ -47,6 +47,32 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
+
+// Simple request logger - shows visitor activity in Railway logs and database
+app.use(async (req, res, next) => {
+  // Skip logging for static assets (CSS, JS, images) and API health checks
+  const isStaticAsset = req.path.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2)$/);
+  const isHealthCheck = req.path === '/health' || req.path === '/api/health';
+
+  if (!isStaticAsset && !isHealthCheck && process.env.NODE_ENV === 'production') {
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const userAgent = req.headers['user-agent'] || 'Unknown';
+
+    // Log to console for Railway logs
+    console.log(`[${timestamp}] ${req.method} ${req.path} | IP: ${ip} | ${userAgent.substring(0, 50)}`);
+
+    // Log to database for analytics (non-blocking)
+    query(
+      'INSERT INTO visitor_logs (ip_address, path, method, user_agent) VALUES ($1, $2, $3, $4)',
+      [ip, req.path, req.method, userAgent]
+    ).catch(err => {
+      // Don't fail the request if logging fails
+      console.error('Visitor log error:', err);
+    });
+  }
+  next();
+});
 
 // Share session with Socket.io
 io.use((socket, next) => {
