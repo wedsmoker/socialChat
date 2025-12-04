@@ -54,13 +54,13 @@ app.use(async (req, res, next) => {
   const isStaticAsset = req.path.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2)$/);
   const isHealthCheck = req.path === '/health' || req.path === '/api/health';
 
-  if (!isStaticAsset && !isHealthCheck && process.env.NODE_ENV === 'production') {
+  if (!isStaticAsset && !isHealthCheck) {
     const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'] || 'Unknown';
 
-    // Log to console for Railway logs
-    console.log(`[${timestamp}] ${req.method} ${req.path} | IP: ${ip} | ${userAgent.substring(0, 50)}`);
+    // Log to console for Railway logs (simple format)
+    console.log(`[${timestamp}] ${req.method} ${req.path} | IP: ${ip}`);
 
     // Log to database for analytics (non-blocking)
     query(

@@ -36,9 +36,9 @@ const query = async (text, params) => {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
 
-    // Only log slow queries (>100ms) in production, or all queries in development
-    if (process.env.NODE_ENV !== 'production' || duration > 100) {
-      console.log('Executed query', { text, duration, rows: res.rowCount });
+    // Only log slow queries (>100ms) to reduce log noise
+    if (duration > 100) {
+      console.log('Slow query detected', { text, duration, rows: res.rowCount });
     }
 
     return res;
