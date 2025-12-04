@@ -35,7 +35,12 @@ const query = async (text, params) => {
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
+
+    // Only log slow queries (>100ms) in production, or all queries in development
+    if (process.env.NODE_ENV !== 'production' || duration > 100) {
+      console.log('Executed query', { text, duration, rows: res.rowCount });
+    }
+
     return res;
   } catch (error) {
     console.error('Database query error:', error);

@@ -867,13 +867,13 @@ Just output the post text, nothing else.`;
     console.log(`✓ First post in: 1 minute`);
     console.log(`✓ Subsequent posts: every ${this.postIntervalMin}-${this.postIntervalMax} minutes`);
     console.log(`✓ Context window: last ${this.contextPostLimit} posts`);
-    console.log(`✓ Auto-accepting friend requests: enabled`);
+    console.log(`✓ Auto-accepting friend requests: every 5 minutes`);
     console.log('====================\n');
 
-    // Check for friend requests every 30 seconds
+    // Check for friend requests every 5 minutes
     const friendCheckInterval = setInterval(async () => {
       await this.autoAcceptFriendRequests();
-    }, 30000);
+    }, 300000);
     this.scheduledTimeouts.push(friendCheckInterval);
 
     // Create first post after 1 minute
