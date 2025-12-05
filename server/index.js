@@ -49,8 +49,11 @@ const sessionMiddleware = session({
 
 app.use(sessionMiddleware);
 
-// Simple request logger - shows visitor activity in Railway logs and database
-app.use(async (req, res, next) => {
+// Bot counter for moderation dashboard
+global.botRequestCount = 0;
+
+// Simple request logger - shows visitor activity in Railway logs (no database storage)
+app.use((req, res, next) => {
   // Skip logging for static assets (CSS, JS, images) and API health checks
   const isStaticAsset = req.path.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2)$/);
   const isHealthCheck = req.path === '/health' || req.path === '/api/health';
@@ -60,17 +63,19 @@ app.use(async (req, res, next) => {
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'] || 'Unknown';
 
-    // Log to console for Railway logs (simple format)
-    console.log(`[${timestamp}] ${req.method} ${req.path} | IP: ${ip}`);
+    // Detect bots by user agent
+    const isBot = /bot|crawler|spider|scraper|scanner|curl|wget|python-requests/i.test(userAgent);
 
-    // Log to database for analytics (non-blocking)
-    query(
-      'INSERT INTO visitor_logs (ip_address, path, method, user_agent) VALUES ($1, $2, $3, $4)',
-      [ip, req.path, req.method, userAgent]
-    ).catch(err => {
-      // Don't fail the request if logging fails
-      console.error('Visitor log error:', err);
-    });
+    // Detect exploit scanning attempts
+    const isScannerPath = /wp-admin|wp-content|\.env|config\.json|\.git|admin\.php|phpinfo|\.sql|backup|database/i.test(req.path);
+
+    // Log to console for Railway logs (simple format)
+    console.log(`[${timestamp}] ${req.method} ${req.path} | IP: ${ip}${isBot ? ' [BOT]' : ''}${isScannerPath ? ' [SCANNER]' : ''}`);
+
+    if (isBot || isScannerPath) {
+      // Just increment bot counter for stats
+      global.botRequestCount++;
+    }
   }
   next();
 });

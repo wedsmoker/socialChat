@@ -49,10 +49,25 @@ async function checkAuth() {
                 friendsLink.style.display = 'none';
             }
 
-            // Change logout button to "Login" for guests
+            // Replace logout button with Login + Register for guests
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
-                logoutBtn.textContent = 'Login';
+                const navUser = document.querySelector('.nav-user');
+                logoutBtn.remove(); // Remove the logout button
+
+                // Add Login and Register buttons
+                const loginBtn = document.createElement('a');
+                loginBtn.href = '/login.html';
+                loginBtn.className = 'btn-secondary';
+                loginBtn.textContent = 'Login';
+
+                const registerBtn = document.createElement('a');
+                registerBtn.href = '/register.html';
+                registerBtn.className = 'btn-primary';
+                registerBtn.textContent = 'Sign Up';
+
+                navUser.appendChild(loginBtn);
+                navUser.appendChild(registerBtn);
             }
 
         } else if (data.isAuthenticated) {
@@ -132,8 +147,11 @@ function showGuestPrompt() {
         banner.id = 'guestBanner';
         banner.className = 'guest-banner';
         banner.innerHTML = `
-            <p>👋 You're browsing as <strong>${guestName}</strong>.
-            <a href="/login.html">Login</a> or <a href="/register.html">Register</a> to post and interact!</p>
+            <p>🎨 You found the underground. Now claim your username.</p>
+            <div class="guest-banner-actions">
+                <a href="/register.html" class="guest-btn-primary">Sign Up Free</a>
+                <a href="/login.html" class="guest-btn-secondary">Login</a>
+            </div>
         `;
         // Insert BEFORE the main container, not inside it
         mainContainer.parentNode.insertBefore(banner, mainContainer);

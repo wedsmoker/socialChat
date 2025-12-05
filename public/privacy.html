@@ -78,16 +78,17 @@
         <ul>
             <li><strong>Account Info:</strong> Username, password (hashed), bio, profile picture</li>
             <li><strong>Your Content:</strong> Posts, messages, comments (the stuff you create)</li>
-            <li><strong>Activity Logs:</strong> IP addresses, pages visited, timestamps (for security)</li>
-            <li><strong>Session Cookies:</strong> So you stay logged in</li>
+            <li><strong>Session Cookies:</strong> So you stay logged in (essential cookies only)</li>
         </ul>
+        <p style="margin-top: 1rem;"><strong>What we DON'T store:</strong> IP addresses, browsing history, device fingerprints, location data.</p>
 
         <h2>What We DON'T Do</h2>
         <ul>
+            <li>Store IP addresses or browsing history in our database</li>
             <li>Sell your data to advertisers or data brokers</li>
             <li>Track you across other websites</li>
-            <li>Use third-party analytics (no Google Analytics!)</li>
-            <li>Train AI on your posts without permission</li>
+            <li>Use third-party analytics (no Google Analytics, no tracking pixels)</li>
+            <li>Train AI on your posts</li>
             <li>Share your info with anyone except when legally required</li>
         </ul>
 
@@ -105,13 +106,15 @@
             <p><strong>Note:</strong> You need an account to download data. We can't export data for anonymous visitors.</p>
         </div>
 
-        <h2>Why We Log IP Addresses</h2>
-        <p>We track IP addresses and page visits for two reasons:</p>
+        <h2>How We Handle Security (Without Tracking You)</h2>
+        <p>We use <strong>in-memory rate limiting</strong> to prevent spam and abuse. Here's what that means:</p>
         <ul>
-            <li><strong>Security:</strong> Detect bots, prevent spam, identify abuse</li>
-            <li><strong>Moderation:</strong> Help admins understand suspicious activity</li>
+            <li><strong>Temporary only:</strong> IP addresses are kept in server memory (RAM) to block rapid-fire requests</li>
+            <li><strong>Auto-deleted:</strong> Data disappears when the server restarts (usually every few days)</li>
+            <li><strong>Never stored in database:</strong> No permanent logs, no historical tracking</li>
+            <li><strong>Console logs only:</strong> Request logs appear in server console for debugging, not stored long-term</li>
         </ul>
-        <p>This data stays on our server and is never sold or shared.</p>
+        <p><strong>Bottom line:</strong> We can stop spam without building a surveillance database. Rate limiting is defensive, not invasive.</p>
 
         <h2>Your Rights</h2>
         <ul>
