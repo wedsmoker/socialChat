@@ -15,7 +15,10 @@ router.setSocketIO = (socketIO) => {
 const postCreationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 20, // Limit each IP to 20 posts per hour
-  message: 'Too many posts created, please slow down.',
+  handler: (req, res) => {
+    const resetTime = Math.floor(Date.now() / 1000) + Math.floor((req.rateLimit.resetTime - Date.now()) / 1000);
+    res.redirect(`/429.html?reset=${resetTime}`);
+  },
 });
 
 // Get all posts (feed)

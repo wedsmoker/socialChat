@@ -36,7 +36,15 @@ async function handleLogin(e) {
         if (response.ok) {
             window.location.href = '/';
         } else {
-            errorMessage.textContent = data.error || 'Login failed';
+            // Show rate limit info if rate limited
+            if (response.status === 429 && data.retryAfter) {
+                const minutes = Math.floor(data.retryAfter / 60);
+                const seconds = data.retryAfter % 60;
+                const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                errorMessage.textContent = `Too many login attempts. Try again in ${timeStr}.`;
+            } else {
+                errorMessage.textContent = data.error || 'Login failed';
+            }
         }
     } catch (error) {
         console.error('Login error:', error);
@@ -74,7 +82,15 @@ async function handleRegister(e) {
         if (response.ok) {
             window.location.href = '/';
         } else {
-            errorMessage.textContent = data.error || 'Registration failed';
+            // Show rate limit info if rate limited
+            if (response.status === 429 && data.retryAfter) {
+                const minutes = Math.floor(data.retryAfter / 60);
+                const seconds = data.retryAfter % 60;
+                const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                errorMessage.textContent = `Too many attempts. Try again in ${timeStr}.`;
+            } else {
+                errorMessage.textContent = data.error || 'Registration failed';
+            }
         }
     } catch (error) {
         console.error('Registration error:', error);

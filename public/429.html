@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head><title>429 Too Many Requests</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"></head>
+<body style="background:#000;color:#0f0;font-family:monospace;text-align:center;padding:50px">
+<h1>429 TOO MANY REQUESTS</h1>
+<p>Slow down there...</p>
+<p>You've been temporarily rate limited.</p>
+<p style="font-size:14px;margin-top:30px">Try again in: <span id="time" style="color:#ff0">calculating...</span></p>
+<script>
+const params=new URLSearchParams(window.location.search);
+const reset=parseInt(params.get('reset')||0);
+function update(){
+const now=Math.floor(Date.now()/1000);
+const wait=reset-now;
+if(wait<=0){document.getElementById('time').textContent='now';return;}
+const m=Math.floor(wait/60);
+const s=wait%60;
+document.getElementById('time').textContent=m>0?`${m}m ${s}s`:`${s}s`;
+setTimeout(update,1000);
+}
+update();
+</script>
+</body>
+</html>

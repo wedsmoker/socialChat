@@ -88,32 +88,69 @@ io.use((socket, next) => {
 // Allow guest access for Socket.io
 io.use(allowGuestSocket);
 
+// Custom rate limit handler - returns JSON for API, redirects for pages
+const rateLimitHandler = (req, res) => {
+  const resetTime = Math.floor(Date.now() / 1000) + Math.floor((req.rateLimit.resetTime - Date.now()) / 1000);
+  const waitSeconds = Math.floor((req.rateLimit.resetTime - Date.now()) / 1000);
+
+  // Check if this is an API request (check both path and originalUrl to be safe)
+  const isApiRequest = req.originalUrl?.startsWith('/api/') || req.url?.startsWith('/api/') || req.path?.startsWith('/api/');
+
+  // API requests get JSON response
+  if (isApiRequest) {
+    return res.status(429).json({
+      error: 'Too many requests. Please try again later.',
+      retryAfter: waitSeconds,
+      resetTime: resetTime
+    });
+  }
+
+  // Page requests get redirected
+  res.redirect(`/429.html?reset=${resetTime}`);
+};
+
 // Rate limiting - General API protection
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  handler: rateLimitHandler,
 });
 
 // Rate limiting - Strict for auth endpoints (prevents brute force)
 const authLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 5, // Limit each IP to 5 login attempts per minute
-  message: 'Too many login attempts, please try again in a minute.',
   skipSuccessfulRequests: true, // Don't count successful requests
-});
-
-// Rate limiting - Post creation (prevents spam)
-const postLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // Limit each IP to 20 posts per hour
-  message: 'Too many posts created, please slow down.',
+  handler: rateLimitHandler,
 });
 
 // Apply general rate limiting to all API routes
 app.use('/api/', apiLimiter);
+
+// Protect moderation.html - redirect unauthorized users to 403
+app.get('/moderation.html', async (req, res) => {
+  if (!req.session.userId) {
+    return res.redirect('/403.html');
+  }
+
+  try {
+    const result = await query(
+      'SELECT is_admin FROM users WHERE id = $1',
+      [req.session.userId]
+    );
+
+    if (result.rows.length === 0 || !result.rows[0].is_admin) {
+      return res.redirect('/403.html');
+    }
+
+    res.sendFile(path.join(__dirname, '../public/moderation.html'));
+  } catch (error) {
+    console.error('Moderation page auth error:', error);
+    res.redirect('/403.html');
+  }
+});
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
@@ -142,6 +179,11 @@ chatHandler(io);
 // Root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// 404 handler - must be last route
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
 });
 
 // Initialize database and start server
